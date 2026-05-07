@@ -785,11 +785,6 @@ function rT2Rank() {
 
 function rT2Ch() {
   const sm={}; TDB.weeks.forEach(w=>sm[w]=t2st(w));
-  mkB('c2c',TDB.weeks,[
-    {label:'Mass',    data:TDB.weeks.map(w=>sm[w].mass.cnt),    backgroundColor:'#378ADD',borderRadius:4},
-    {label:'Target',  data:TDB.weeks.map(w=>sm[w].target.cnt),  backgroundColor:'#E24B4A',borderRadius:4},
-    {label:'콘텐츠',  data:TDB.weeks.map(w=>sm[w].content.cnt), backgroundColor:'#639922',borderRadius:4},
-  ].reduce((a,b)=>(a.push(b),a),[]), null, TDB.weeks);  // mkB 시그니처 맞추기
   mkB('c2c',[
     {label:'Mass',    data:TDB.weeks.map(w=>sm[w].mass.cnt),    backgroundColor:'#378ADD',borderRadius:4},
     {label:'Target',  data:TDB.weeks.map(w=>sm[w].target.cnt),  backgroundColor:'#E24B4A',borderRadius:4},
