@@ -666,6 +666,8 @@ function rDG1() {
 }
 
 function rDN1() {
+  // 도넛 캔버스가 없으면 스킵
+  if(!document.getElementById('cDN')) return;
   const i=hsi;
   const vs=[HD.uv.todayBtv[i],HD.uv.hotContent[i],HD.uv.blockBnr[i],HD.uv.race[i]];
   const tot=vs.reduce((a,b)=>a+b,0);
@@ -675,11 +677,12 @@ function rDN1() {
     data:{labels:BN,datasets:[{data:vs,backgroundColor:BC,borderWidth:2,borderColor:'#fff',hoverOffset:4}]},
     options:{cutout:'68%',animation:{duration:400},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${FM(c.raw)} (${(c.raw/tot*100).toFixed(1)}%)`}}}}
   });
-  document.getElementById('dleg').innerHTML = BN.map((n,k)=>`
-    <div class="li"><div class="ld" style="background:${BC[k]}"></div>
-    <div class="ln">${n}</div>
-    <div class="lp" style="color:${BC[k]}">${(vs[k]/tot*100).toFixed(1)}%</div>
-    <div class="lv">${FM(vs[k])}</div></div>`).join('');
+  if(document.getElementById('dleg'))
+    document.getElementById('dleg').innerHTML = BN.map((n,k)=>`
+      <div class="li"><div class="ld" style="background:${BC[k]}"></div>
+      <div class="ln">${n}</div>
+      <div class="lp" style="color:${BC[k]}">${(vs[k]/tot*100).toFixed(1)}%</div>
+      <div class="lv">${FM(vs[k])}</div></div>`).join('');
 }
 
 function rCharts1() {
