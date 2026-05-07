@@ -195,29 +195,35 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
   <div id="p1-spin" class="spinner-wrap"><div class="spinner"></div><span>홈 전체 이용 현황 불러오는 중...</span></div>
   <div id="p1-body" style="display:none">
     <div class="wbar" id="wb1"></div>
-    <div class="sec">핵심 지표 <span class="sec-b">선택 주차 기준</span></div>
+
+    <!-- ① 홈 이용 UV 추이 (풀 width, 흐름 먼저) -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="cft">홈 이용 UV 추이</div>
+      <div class="cfd">전체 · 단순방문 · 단순방문 제외</div>
+      <canvas id="cUV" height="110"></canvas>
+    </div>
+
+    <!-- ② 주간 실적 -->
+    <div class="sec">주간 실적 <span class="sec-b">선택 주차 기준</span></div>
     <div class="kg" id="kg1"></div>
-    <div class="sec">파생 지표</div>
     <div class="dg3" id="dg1"></div>
-    <div class="sec">추이 분석</div>
-    <div class="cg2">
-      <div class="card"><div class="cft">홈 이용 UV 추이</div><div class="cfd">전체 · 단순방문 · 단순방문 제외</div><canvas id="cUV" height="200"></canvas></div>
-      <div class="card"><div class="cft">블록별 UV 추이</div><div class="cfd">단순방문 제외 내 블록별 (중복 포함)</div><canvas id="cBK" height="200"></canvas></div>
-    </div>
-    <div class="cg2">
-      <div class="card"><div class="cft">홈 활용도 추이</div><div class="cfd">전체 UV 중 단순방문 제외 비율 (%)</div><canvas id="cEG" height="200"></canvas></div>
-      <div class="card"><div class="cft">블록별 점유율 추이</div><div class="cfd">단순방문 제외 UV 기준 100% 스택</div><canvas id="cSK" height="200"></canvas></div>
-    </div>
-    <div class="cg2">
-      <div class="card"><div class="cft">고객당 PV 추이</div><div class="cfd">단순방문 제외 1인당 탐색 PV</div><canvas id="cPP" height="200"></canvas></div>
-      <div class="card"><div class="cft">선택 주차 블록 비중</div><div class="cfd">단순방문 제외 UV 도넛</div>
-        <div class="dn-row"><div class="dn-cv"><canvas id="cDN" height="145"></canvas></div><div class="dn-leg" id="dleg"></div></div>
-      </div>
-    </div>
-    <div class="sec">원본 데이터</div>
-    <div class="card">
+    <div class="card" style="margin-bottom:12px">
       <div class="tbar"><button class="tb on" onclick="h1T('uv',this)">고객수 (UV)</button><button class="tb" onclick="h1T('pv',this)">이용량 (PV)</button></div>
       <div class="tw"><table id="tbl1"></table></div>
+    </div>
+
+    <!-- ③ 홈 이용 추이 -->
+    <div class="sec">홈 이용 추이</div>
+    <div class="cg2">
+      <div class="card"><div class="cft">UV 추이</div><div class="cfd">전체 · 단순방문 · 단순방문 제외</div><canvas id="cUV2" height="200"></canvas></div>
+      <div class="card"><div class="cft">활용도 추이</div><div class="cfd">전체 UV 중 단순방문 제외 비율 (%)</div><canvas id="cEG" height="200"></canvas></div>
+    </div>
+
+    <!-- ④ 블록별 현황 -->
+    <div class="sec">블록별 현황</div>
+    <div class="cg2">
+      <div class="card"><div class="cft">블록별 UV 추이</div><div class="cfd">단순방문 제외 내 블록별 (중복 포함)</div><canvas id="cBK" height="200"></canvas></div>
+      <div class="card"><div class="cft">블록별 점유율 추이</div><div class="cfd">단순방문 제외 UV 기준 · 커서 올리면 비율 확인</div><canvas id="cSK" height="200"></canvas></div>
     </div>
   </div>
 </div>
@@ -381,12 +387,31 @@ async function fetchTab(tab) {
   return r.text();
 }
 
-/* CSV → 행 배열 (3행 헤더 스킵) */
+/* CSV → 행 배열 (3행 헤더 스킵, 합계행/빈행 제거) */
 function csvRows(text) {
-  const lines = text.trim().split('\n').map(l =>
-    l.split(',').map(c => c.replace(/^"|"$/g,'').trim())
-  );
-  return lines.slice(3).filter(r => r[0]||r[1]);
+  // 따옴표 포함 CSV 파싱
+  function parseLine(line) {
+    const result = [];
+    let cur = '', inQ = false;
+    for(let i=0; i<line.length; i++) {
+      const ch = line[i];
+      if(ch==='"') { inQ=!inQ; }
+      else if(ch===',' && !inQ) { result.push(cur.trim()); cur=''; }
+      else { cur+=ch; }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+  const lines = text.trim().split('\n').map(parseLine);
+  return lines.slice(3).filter(r => {
+    const dateVal = (r[0]||'').trim();
+    const nameVal = (r[1]||'').trim();
+    if(!dateVal || !nameVal) return false;      // 빈행
+    if(nameVal === '#') return false;           // 합계행
+    const dateClean = dateVal.replace(/[-\/]/g,'');
+    if(!/^[0-9]{6,8}$/.test(dateClean)) return false;  // 날짜 아닌 행
+    return true;
+  });
 }
 
 function setSS(s, l) {
@@ -476,13 +501,15 @@ function parseHomeCSV(text) {
   const lines = text.trim().split('\n').map(l =>
     l.split(',').map(c => c.replace(/^"|"$/g,'').trim())
   );
-  const wks = lines[0].slice(1).filter(Boolean);
+  // Row 0: 날짜행, Row 1: 주차 헤더(26-01-W1...), Row 2~: 데이터
+  // Row 9: 구분행(홈 탐색 PV), Row 10~: PV 데이터
+  const wks = lines[1].slice(1).filter(Boolean);
   const rw  = i => (lines[i]||[]).slice(1, wks.length+1)
                     .map(v => parseInt(v.replace(/,/g,'').replace(/[^0-9-]/g,''))||0);
   return {
     weeks: wks,
-    uv: { total:rw(1), simple:rw(2), nonSimple:rw(3), todayBtv:rw(4), hotContent:rw(5), blockBnr:rw(6), race:rw(7) },
-    pv: { total:rw(9), simple:rw(10), nonSimple:rw(11), todayBtv:rw(12), hotContent:rw(13), blockBnr:rw(14), race:rw(15) }
+    uv: { total:rw(2), simple:rw(3), nonSimple:rw(4), todayBtv:rw(5), hotContent:rw(6), blockBnr:rw(7), race:rw(8) },
+    pv: { total:rw(10), simple:rw(11), nonSimple:rw(12), todayBtv:rw(13), hotContent:rw(14), blockBnr:rw(15), race:rw(16) }
   };
 }
 
@@ -497,13 +524,17 @@ function parseTdbCSV(csvEv, csvCt) {
   function parseTab(text, tabType) {
     return csvRows(text).map(row => {
       const dt = parseDate(row[0]); if(!dt) return null;
-      const banner = (row[1]||'').trim(); if(!banner || banner==='#') return null;
+      const banner = (row[1]||'').trim();
+      if(!banner || banner==='#' || banner==='' ) return null;
+      const uv  = toNum(row[2]);
+      const pv  = toNum(row[3]);
+      const rev = toNum(row[4]);
+      // UV가 비정상적으로 큰 경우 (날짜값이 잘못 읽힌 경우) 필터링
+      if(uv > 10000000) return null;
       return {
         date:   dt,
         banner,
-        uv:     toNum(row[2]),
-        pv:     toNum(row[3]),
-        rev:    toNum(row[4]),
+        uv, pv, rev,
         week:   getWL(dt),
         type:   tabType==='ev' ? (banner.includes('타겟') ? 'target' : 'mass') : 'content'
       };
@@ -652,18 +683,34 @@ function rDN1() {
 }
 
 function rCharts1() {
-  mkL('cUV',[
+  // UV 추이용 데이터셋 (상단 요약 + 섹션 공유)
+  const uvDs = [
     {label:'홈 이용 UV',data:HD.uv.total,borderColor:'#0071e3',backgroundColor:'rgba(0,113,227,.08)',fill:true,tension:.4,pointRadius:3,borderWidth:2},
     {label:'단순방문',data:HD.uv.simple,borderColor:'#86868b',backgroundColor:'transparent',tension:.4,pointRadius:2,borderWidth:1.5,borderDash:[4,3]},
     {label:'단순방문 제외',data:HD.uv.nonSimple,borderColor:'#34c759',backgroundColor:'rgba(52,199,89,.07)',fill:true,tension:.4,pointRadius:3,borderWidth:2},
-  ], null, HD.weeks);
-  mkL('cBK', BN.map((n,k)=>({label:n,data:[HD.uv.todayBtv,HD.uv.hotContent,HD.uv.blockBnr,HD.uv.race][k],borderColor:BC[k],tension:.4,pointRadius:3,borderWidth:2,backgroundColor:'transparent'})),null,HD.weeks);
+  ];
+  // ① 상단 요약 차트 (높이 줄임 — height 속성은 HTML에서 처리)
+  mkL('cUV', uvDs, null, HD.weeks);
+  // ③ 홈 이용 추이 섹션 — UV
+  mkL('cUV2', uvDs, null, HD.weeks);
+  // ③ 활용도 추이
   const ea=HD.uv.total.map((_,i)=>parseFloat((HD.uv.nonSimple[i]/HD.uv.total[i]*100).toFixed(2)));
   mkL('cEG',[{label:'홈 활용도(%)',data:ea,borderColor:'#0071e3',backgroundColor:'rgba(0,113,227,.08)',fill:true,tension:.4,pointRadius:4,borderWidth:2}],
     o=>{o.scales.y.ticks.callback=v=>v+'%';o.scales.y.min=Math.floor(Math.min(...ea)-1);o.scales.y.max=Math.ceil(Math.max(...ea)+1);}, HD.weeks);
+  // ④ 블록별 UV 추이
+  mkL('cBK', BN.map((n,k)=>({label:n,data:[HD.uv.todayBtv,HD.uv.hotContent,HD.uv.blockBnr,HD.uv.race][k],borderColor:BC[k],tension:.4,pointRadius:3,borderWidth:2,backgroundColor:'transparent'})),null,HD.weeks);
+  // ④ 블록별 점유율 — 툴팁에 % 표시
   const sr=HD.weeks.map((_,i)=>{const t=HD.uv.todayBtv[i]+HD.uv.hotContent[i]+HD.uv.blockBnr[i]+HD.uv.race[i];return[HD.uv.todayBtv[i],HD.uv.hotContent[i],HD.uv.blockBnr[i],HD.uv.race[i]].map(v=>t?parseFloat((v/t*100).toFixed(1)):0);});
   mkB('cSK',BN.map((n,k)=>({label:n,data:sr.map(r=>r[k]),backgroundColor:BC[k],borderSkipped:false})),
-    o=>{o.scales.x.stacked=true;o.scales.y.stacked=true;o.scales.y.max=100;o.scales.y.ticks.callback=v=>v+'%';},HD.weeks);
+    o=>{
+      o.scales.x.stacked=true;o.scales.y.stacked=true;o.scales.y.max=100;o.scales.y.ticks.callback=v=>v+'%';
+      o.plugins.tooltip={
+        mode:'index', intersect:false,
+        callbacks:{
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%`
+        }
+      };
+    },HD.weeks);
   const pa=HD.uv.total.map((_,i)=>HD.uv.nonSimple[i]?parseFloat((HD.pv.nonSimple[i]/HD.uv.nonSimple[i]).toFixed(2)):0);
   mkL('cPP',[{label:'고객당 PV',data:pa,borderColor:'#34c759',backgroundColor:'rgba(52,199,89,.08)',fill:true,tension:.4,pointRadius:4,borderWidth:2}],
     o=>{o.scales.y.ticks.callback=v=>v+'회';o.scales.y.min=Math.floor(Math.min(...pa)-0.5);},HD.weeks);
