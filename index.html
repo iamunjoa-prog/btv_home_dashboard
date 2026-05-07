@@ -592,14 +592,16 @@ const bO = () => ({
   }
 });
 function mkL(id, ds, fn, lbs) {
+  const el=document.getElementById(id); if(!el) return;
   if(CH[id]) CH[id].destroy();
   const o=bO(); if(fn) fn(o);
-  CH[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'line',data:{labels:lbs,datasets:ds},options:o});
+  CH[id]=new Chart(el.getContext('2d'),{type:'line',data:{labels:lbs,datasets:ds},options:o});
 }
 function mkB(id, ds, fn, lbs) {
+  const el=document.getElementById(id); if(!el) return;
   if(CH[id]) CH[id].destroy();
   const o=bO(); if(fn) fn(o);
-  CH[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels:lbs,datasets:ds},options:o});
+  CH[id]=new Chart(el.getContext('2d'),{type:'bar',data:{labels:lbs,datasets:ds},options:o});
 }
 
 /* ═══════════════════════════════════════
