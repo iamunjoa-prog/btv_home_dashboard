@@ -143,6 +143,18 @@ tbody td:first-child{text-align:left;font-weight:500}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:1px solid var(--bd)}
+.ai-box{background:linear-gradient(135deg,rgba(0,113,227,.04),rgba(175,82,222,.04));border:1px solid rgba(0,113,227,.15);border-radius:var(--r);padding:20px 22px;margin-bottom:20px;position:relative;overflow:hidden}
+.ai-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--purple))}
+.ai-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ai-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.ai-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:rgba(0,113,227,.1);color:var(--blue)}
+.ai-body{font-size:13px;color:var(--t2);line-height:1.9;white-space:pre-wrap}
+.ai-btn{font-size:11px;color:var(--t3);cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:transparent;font-family:inherit;transition:all .15s;white-space:nowrap}
+.ai-btn:hover{background:var(--sf2);color:var(--t1)}
+.ai-loading{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t3);padding:4px 0}
+.ai-dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--blue);animation:dt 1.2s infinite;margin:0 1px}
+.ai-dots span:nth-child(2){animation-delay:.2s}.ai-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dt{0%,80%,100%{transform:scale(0);opacity:.3}40%{transform:scale(1);opacity:1}}
 
 /* 테이블 헤더 색상 */
 thead th { background:#f0f4ff !important; color:var(--t2); }
@@ -196,6 +208,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   <div class="hdr-in">
     <div class="logo">홈 이용 <span>Dashboard</span></div>
     <nav class="nav">
+      <button class="nb" onclick="goPage('p0',this)">📋 주간 Summary</button>
       <button class="nb on" onclick="goPage('p1',this)">홈 전체 이용 현황</button>
       <button class="nb" onclick="goPage('p2',this)">Today B tv 이용 현황</button>
       <button class="nb" onclick="goPage('p3',this)">콘텐츠 블록 이용 현황</button>
@@ -207,10 +220,28 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   </div>
 </header>
 
+<!-- ════ PAGE 0: 주간 Summary ════ -->
+<div id="p0" class="pg">
+  <div class="ai-box" id="sum-box">
+    <div class="ai-hdr">
+      <div class="ai-title">📋 주간 종합 Summary <span class="ai-badge">Claude AI</span></div>
+      <button class="ai-btn" onclick="genSummary()">🔄 새로고침</button>
+    </div>
+    <div id="sum-body" class="ai-body" style="color:var(--t3);font-size:13px">데이터 연동 후 자동으로 생성됩니다.</div>
+  </div>
+</div>
+
 <!-- ════ PAGE 1 ════ -->
 <div id="p1" class="pg on">
   <div id="p1-spin" class="spinner-wrap"><div class="spinner"></div><span>홈 전체 이용 현황 불러오는 중...</span></div>
   <div id="p1-body" style="display:none">
+    <div class="ai-box">
+      <div class="ai-hdr">
+        <div class="ai-title">🏠 홈 이용 현황 인사이트 <span class="ai-badge">Claude AI</span></div>
+        <button class="ai-btn" onclick="genInsight('p1')">🔄 새로고침</button>
+      </div>
+      <div id="insight-p1" class="ai-body" style="color:var(--t3)">데이터 분석 중...</div>
+    </div>
     <div class="wbar" id="wb1"></div>
 
     <!-- ① 홈 이용 UV 추이 (풀 width, 흐름 먼저) -->
@@ -234,15 +265,15 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     <!-- ③ 홈 이용 추이 -->
     <div class="sec">홈 이용 추이</div>
     <div class="cg2">
-      <div class="card"><div class="cft">UV 추이</div><div class="cfd">전체 · 단순방문 · 단순방문 제외</div><canvas id="cUV2" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cUV2','UV추이')">📷 저장</button></div>
-      <div class="card"><div class="cft">활용도 추이</div><div class="cfd">전체 UV 중 단순방문 제외 비율 (%)</div><canvas id="cEG" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cEG','홈활용도추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">UV 추이</div><div class="cfd">전체 · 단순방문 · 단순방문 제외</div><canvas id="cUV2" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cUV2','UV추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">활용도 추이</div><div class="cfd">전체 UV 중 단순방문 제외 비율 (%)</div><canvas id="cEG" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cEG','홈활용도추이')">📷 저장</button></div>
     </div>
 
     <!-- ④ 블록별 현황 -->
     <div class="sec">블록별 현황</div>
     <div class="cg2">
-      <div class="card"><div class="cft">블록별 UV 추이</div><div class="cfd">단순방문 제외 내 블록별 (중복 포함)</div><canvas id="cBK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cBK','블록별UV추이')">📷 저장</button></div>
-      <div class="card"><div class="cft">블록별 점유율 추이</div><div class="cfd">단순방문 제외 UV 기준 · 커서 올리면 비율 확인</div><canvas id="cSK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cSK','블록별점유율추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">블록별 UV 추이</div><div class="cfd">단순방문 제외 내 블록별 (중복 포함)</div><canvas id="cBK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cBK','블록별UV추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">블록별 점유율 추이</div><div class="cfd">단순방문 제외 UV 기준 · 커서 올리면 비율 확인</div><canvas id="cSK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cSK','블록별점유율추이')">📷 저장</button></div>
     </div>
   </div>
 </div>
@@ -251,6 +282,13 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p2" class="pg">
   <div id="p2-spin" class="spinner-wrap"><div class="spinner"></div><span>Today B tv 데이터 불러오는 중...</span></div>
   <div id="p2-body" style="display:none">
+    <div class="ai-box">
+      <div class="ai-hdr">
+        <div class="ai-title">📺 Today B tv 인사이트 <span class="ai-badge">Claude AI</span></div>
+        <button class="ai-btn" onclick="genInsight('p2')">🔄 새로고침</button>
+      </div>
+      <div id="insight-p2" class="ai-body" style="color:var(--t3)">데이터 분석 중...</div>
+    </div>
     <div class="wbar" id="wb2"></div>
     <div class="sec" style="justify-content:space-between">
       <span>① 주간 실적 Summary</span>
@@ -272,8 +310,8 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     </div>
     <div class="sec">③ 추이 차트</div>
     <div class="cg2">
-      <div class="card"><div class="cft">운영 수량 추이</div><canvas id="c2c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2c','운영수량추이')">📷 저장</button></div>
-      <div class="card"><div class="cft">평균 UV 추이</div><canvas id="c2a" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2a','평균UV추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c2c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2c','운영수량추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">평균 UV 추이</div><canvas id="c2a" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2a','평균UV추이')">📷 저장</button></div>
     </div>
   </div>
 </div>
@@ -282,6 +320,13 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p3" class="pg">
   <div id="p3-spin" class="spinner-wrap"><div class="spinner"></div><span>콘텐츠 블록 데이터 불러오는 중...</span></div>
   <div id="p3-body" style="display:none">
+    <div class="ai-box">
+      <div class="ai-hdr">
+        <div class="ai-title">🧱 콘텐츠 블록 인사이트 <span class="ai-badge">Claude AI</span></div>
+        <button class="ai-btn" onclick="genInsight('p3')">🔄 새로고침</button>
+      </div>
+      <div id="insight-p3" class="ai-body" style="color:var(--t3)">데이터 분석 중...</div>
+    </div>
     <div class="wbar" id="wb3"></div>
     <div class="sec" style="justify-content:space-between">
       <span>① 주간 실적 Summary</span>
@@ -301,8 +346,8 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     </div>
     <div class="sec">③ 추이 차트</div>
     <div class="cg2">
-      <div class="card"><div class="cft">운영 수량 추이</div><canvas id="c3c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3c','운영수량추이_블록')">📷 저장</button></div>
-      <div class="card"><div class="cft">일평균 UV 추이</div><canvas id="c3u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3u','일평균UV추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c3c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3c','운영수량추이_블록')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">일평균 UV 추이</div><canvas id="c3u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3u','일평균UV추이')">📷 저장</button></div>
     </div>
   </div>
 </div>
@@ -502,6 +547,8 @@ async function loadAll() {
     renderP1();
     renderP2();
     renderP3();
+    // 인사이트 자동 생성
+    setTimeout(()=>{ genInsight("p1"); genInsight("p2"); genInsight("p3"); genSummary(); }, 100);
 
     ['p1','p2','p3'].forEach(id => {
       document.getElementById(`${id}-spin`).style.display='none';
@@ -1195,6 +1242,271 @@ function captureChart(canvasId, filename) {
   a.download = `${filename}_${new Date().toLocaleDateString('ko-KR').replace(/\./g,'').replace(/ /g,'')}.png`;
   a.click();
 }
+
+/* ═══════════════════════════════════════
+   룰 기반 인사이트 자동 생성
+═══════════════════════════════════════ */
+function wowText(v, unit='%') {
+  if(v===null||v===undefined) return null;
+  const f = parseFloat(v);
+  if(isNaN(f)) return null;
+  const arrow = f>0 ? '▲' : '▼';
+  const cls   = f>0 ? 'pos' : 'neg';
+  return `<span class="${cls}">${arrow}${Math.abs(f)}${unit}</span>`;
+}
+function wowVal(curr, prev) {
+  if(!prev || prev===0) return null;
+  return ((curr-prev)/Math.abs(prev)*100).toFixed(1);
+}
+
+/* ── P1 홈 전체 인사이트 ── */
+function genInsight(page) {
+  if(page==='p1') genP1Insight();
+  else if(page==='p2') genP2Insight();
+  else if(page==='p3') genP3Insight();
+}
+
+function genP1Insight() {
+  if(!HD||!HD.weeks.length) return;
+  const el = document.getElementById('insight-p1'); if(!el) return;
+  const i = hsi, p = i>0?i-1:null;
+  const wk = HD.weeks[i];
+  const uv  = HD.uv.total[i],    uvP  = p!==null?HD.uv.total[p]:null;
+  const ns  = HD.uv.nonSimple[i], nsP  = p!==null?HD.uv.nonSimple[p]:null;
+  const pv  = HD.pv.total[i],    pvP  = p!==null?HD.pv.total[p]:null;
+  const eng = (ns/uv*100).toFixed(1);
+  const engP= nsP!==null?(nsP/uvP*100).toFixed(1):null;
+  const ppu = (HD.pv.nonSimple[i]/ns).toFixed(2);
+  const ppuP= p!==null?(HD.pv.nonSimple[p]/nsP).toFixed(2):null;
+
+  // Top 블록
+  const buvs = [HD.uv.todayBtv[i],HD.uv.hotContent[i],HD.uv.blockBnr[i],HD.uv.race[i]];
+  const bnames= ['Today B tv','오늘 핫한 콘텐츠','콘텐츠 블록/배너','RACE/랭킹'];
+  const topIdx = buvs.indexOf(Math.max(...buvs));
+
+  const uvW  = wowVal(uv, uvP);
+  const nsW  = wowVal(ns, nsP);
+  const pvW  = wowVal(pv, pvP);
+  const engW = engP!==null?(parseFloat(eng)-parseFloat(engP)).toFixed(1):null;
+  const ppuW = wowVal(parseFloat(ppu), parseFloat(ppuP||0));
+
+  const lines = [
+    `📅 <strong>${wk}</strong> 홈 이용 현황 요약`,
+    ``,
+    `• 홈 이용 UV <strong>${FM(uv)}</strong> ${uvW?wowText(uvW):''}`,
+    `• 단순방문 제외 UV <strong>${FM(ns)}</strong> ${nsW?wowText(nsW):''}`,
+    `• 홈 탐색 PV <strong>${FM(pv)}</strong> ${pvW?wowText(pvW):''}`,
+    ``,
+    `• 홈 활용도 <strong>${eng}%</strong> ${engW!==null?`(전주 ${engP}% → ${eng}%, ${wowText(engW,'%p')})` : ''}`,
+    `• 고객당 PV <strong>${ppu}회</strong> ${ppuW?wowText(ppuW):''}`,
+    ``,
+    `• 이번 주 최다 UV 블록: <strong>${bnames[topIdx]}</strong> (${FM(buvs[topIdx])})`,
+  ];
+
+  el.innerHTML = lines.join('<br>');
+}
+
+/* ── P2 Today B tv 인사이트 ── */
+function genP2Insight() {
+  if(!TDB||!TDB.weeks.length) return;
+  const el = document.getElementById('insight-p2'); if(!el) return;
+  const wk = TDB.weeks[ti2];
+  const sm  = t2st(wk);
+  const smP = ti2>0 ? t2st(TDB.weeks[ti2-1]) : null;
+
+  // Top 배너 (전체)
+  const tops = bda(TDB.all, wk, null).slice(0,3);
+
+  const mkLine = (type, label, color) => {
+    const cur = sm[type], prv = smP?smP[type]:null;
+    const cntW = prv ? wowVal(cur.cnt, prv.cnt) : null;
+    const avgW = prv ? wowVal(cur.avg, prv.avg) : null;
+    return `• <span style="color:${color};font-weight:600">${label}</span> ` +
+      `운영 <strong>${cur.cnt}개</strong>${cntW?` ${wowText(cntW)}`:''}　` +
+      `평균UV <strong>${FC(cur.avg)}</strong>${avgW?` ${wowText(avgW)}`:''}`;
+  };
+
+  const lines = [
+    `📅 <strong>${wk}</strong> Today B tv 이용 현황 요약`,
+    ``,
+    mkLine('mass',    'Mass',   '#378ADD'),
+    mkLine('target',  'Target', '#E24B4A'),
+    mkLine('content', '콘텐츠', '#639922'),
+    ``,
+    `• Top 3 배너 (일평균 UV 기준)`,
+    ...tops.map((r,i)=>`  ${i+1}. <strong>${r.banner}</strong> — ${FC(r.avgUV)}`),
+  ];
+
+  el.innerHTML = lines.join('<br>');
+}
+
+/* ── P3 콘텐츠 블록 인사이트 ── */
+function genP3Insight() {
+  if(!CB||!CB.weeks.length) return;
+  const el = document.getElementById('insight-p3'); if(!el) return;
+  const wk = CB.weeks[ti3];
+  const gm  = cbWS('gen',  wk);
+  const rm  = cbWS('race', wk);
+  const gmP = ti3>0?cbWS('gen',  CB.weeks[ti3-1]):null;
+  const rmP = ti3>0?cbWS('race', CB.weeks[ti3-1]):null;
+
+  const topGen  = blkDA('gen',  wk).slice(0,3);
+  const topRace = blkDA('race', wk).slice(0,3);
+
+  const mkLine2 = (cur, prv, label, color) => {
+    const cntW = prv?wowVal(cur.opCount, prv.opCount):null;
+    const uvW  = prv?wowVal(cur.avgUV,   prv.avgUV):null;
+    return `• <span style="color:${color};font-weight:600">${label}</span> ` +
+      `운영 <strong>${cur.opCount}개</strong>${cntW?` ${wowText(cntW)}`:''}　` +
+      `일평균UV <strong>${FC(cur.avgUV)}</strong>${uvW?` ${wowText(uvW)}`:''}`;
+  };
+
+  const lines = [
+    `📅 <strong>${wk}</strong> 콘텐츠 블록 이용 현황 요약`,
+    ``,
+    mkLine2(gm, gmP, '일반 콘텐츠 블록', '#059669'),
+    mkLine2(rm, rmP, 'RACE 블록',         '#3B5BDB'),
+    ``,
+    `• Top 3 일반 블록 (일평균 UV)`,
+    ...topGen.map((r,i)=>`  ${i+1}. <strong>${r.block}</strong> — ${FC(r.avgUV)}`),
+    ``,
+    `• Top 3 RACE 블록 (일평균 UV)`,
+    ...topRace.map((r,i)=>`  ${i+1}. <strong>${r.block}</strong> — ${FC(r.avgUV)}`),
+  ];
+
+  el.innerHTML = lines.join('<br>');
+}
+
+/* ── Summary 탭 ── */
+function genSummary() {
+  const el = document.getElementById('sum-body'); if(!el) return;
+  if(!HD||!TDB||!CB) { el.innerHTML='<span style="color:var(--t3)">3개 탭 데이터가 모두 로드된 후 생성됩니다.</span>'; return; }
+
+  const wk1 = HD.weeks[hsi];
+  const wk2 = TDB.weeks[ti2];
+  const wk3 = CB.weeks[ti3];
+
+  // P1 핵심
+  const uv  = HD.uv.total[hsi], uvP = hsi>0?HD.uv.total[hsi-1]:null;
+  const ns  = HD.uv.nonSimple[hsi];
+  const eng = (ns/uv*100).toFixed(1);
+  const uvW = wowVal(uv, uvP);
+
+  // P2 핵심
+  const sm2   = t2st(wk2);
+  const sm2P  = ti2>0?t2st(TDB.weeks[ti2-1]):null;
+  const topBnr= bda(TDB.all, wk2, null)[0];
+  const massW = sm2P?wowVal(sm2.mass.avg, sm2P.mass.avg):null;
+
+  // P3 핵심
+  const gm3  = cbWS('gen',  wk3);
+  const rm3  = cbWS('race', wk3);
+  const gm3P = ti3>0?cbWS('gen',  CB.weeks[ti3-1]):null;
+  const topBlk= blkDA('gen', wk3)[0];
+  const genW = gm3P?wowVal(gm3.avgUV, gm3P.avgUV):null;
+
+  const lines = [
+    `<strong style="font-size:15px">📋 주간 종합 Summary</strong>`,
+    `<span style="color:var(--t3);font-size:12px">${wk1} 기준 · 자동 생성</span>`,
+    ``,
+    `<strong style="color:var(--blue)">🏠 홈 전체 이용 현황 (${wk1})</strong>`,
+    `홈 이용 UV <strong>${FM(uv)}</strong> ${uvW?wowText(uvW):''}, 홈 활용도 <strong>${eng}%</strong>`,
+    ``,
+    `<strong style="color:#E24B4A">📺 Today B tv 이용 현황 (${wk2})</strong>`,
+    `Mass ${sm2.mass.cnt}개 운영, 평균UV <strong>${FC(sm2.mass.avg)}</strong> ${massW?wowText(massW):''}`,
+    `Target ${sm2.target.cnt}개, 콘텐츠 ${sm2.content.cnt}개 운영`,
+    topBnr ? `Top 배너: <strong>${topBnr.banner}</strong> (일평균UV ${FC(topBnr.avgUV)})` : '',
+    ``,
+    `<strong style="color:#059669">🧱 콘텐츠 블록 이용 현황 (${wk3})</strong>`,
+    `일반 블록 ${gm3.opCount}개, 일평균UV <strong>${FC(gm3.avgUV)}</strong> ${genW?wowText(genW):''}`,
+    `RACE 블록 ${rm3.opCount}개, 일평균UV <strong>${FC(rm3.avgUV)}</strong>`,
+    topBlk ? `Top 블록: <strong>${topBlk.block}</strong> (일평균UV ${FC(topBlk.avgUV)})` : '',
+  ];
+
+  el.innerHTML = lines.filter(l=>l!=='').join('<br>');
+}
+
+
+/* ═══════════════════════════════════════
+   룰 기반 인사이트 자동 생성
+═══════════════════════════════════════ */
+function wowTxt(v, unit='%') {
+  if(v===null||v===undefined) return '';
+  const f=parseFloat(v); if(isNaN(f)) return '';
+  const cls=f>0?'pos':'neg', arr=f>0?'▲':'▼';
+  return `<span class="${cls}">${arr}${Math.abs(f)}${unit}</span>`;
+}
+function wowV(c,p){ return (p&&p!==0)?((c-p)/Math.abs(p)*100).toFixed(1):null; }
+
+
+function genP1Insight() {
+  if(!HD||!HD.weeks.length) return;
+  const el=document.getElementById('insight-p1'); if(!el) return;
+  const i=hsi, p=i>0?i-1:null;
+  const wk=HD.weeks[i];
+  const uv=HD.uv.total[i], uvP=p!==null?HD.uv.total[p]:null;
+  const ns=HD.uv.nonSimple[i], nsP=p!==null?HD.uv.nonSimple[p]:null;
+  const pv=HD.pv.total[i], pvP=p!==null?HD.pv.total[p]:null;
+  const eng=(ns/uv*100).toFixed(1), engP=nsP?((nsP/uvP)*100).toFixed(1):null;
+  const ppu=(HD.pv.nonSimple[i]/ns).toFixed(2), ppuP=p!==null?(HD.pv.nonSimple[p]/nsP).toFixed(2):null;
+  const buvs=[HD.uv.todayBtv[i],HD.uv.hotContent[i],HD.uv.blockBnr[i],HD.uv.race[i]];
+  const bnames=['Today B tv','오늘 핫한 콘텐츠','콘텐츠 블록/배너','RACE/랭킹'];
+  const topIdx=buvs.indexOf(Math.max(...buvs));
+  const engW=engP!==null?(parseFloat(eng)-parseFloat(engP)).toFixed(1):null;
+  el.innerHTML=[
+    `📅 <strong>${wk}</strong> 홈 이용 현황 요약`,``,
+    `• 홈 이용 UV <strong>${FM(uv)}</strong> ${wowTxt(wowV(uv,uvP))}`,
+    `• 단순방문 제외 UV <strong>${FM(ns)}</strong> ${wowTxt(wowV(ns,nsP))}`,
+    `• 홈 탐색 PV <strong>${FM(pv)}</strong> ${wowTxt(wowV(pv,pvP))}`,``,
+    `• 홈 활용도 <strong>${eng}%</strong>${engW!==null?` (전주 ${engP}% → ${eng}%, ${wowTxt(engW,'%p')})` : ''}`,
+    `• 고객당 PV <strong>${ppu}회</strong> ${wowTxt(wowV(parseFloat(ppu),parseFloat(ppuP||0)))}`,``,
+    `• 최다 UV 블록: <strong>${bnames[topIdx]}</strong> (${FM(buvs[topIdx])})`,
+  ].join('<br>');
+}
+
+function genP2Insight() {
+  if(!TDB||!TDB.weeks.length) return;
+  const el=document.getElementById('insight-p2'); if(!el) return;
+  const wk=TDB.weeks[ti2];
+  const sm=t2st(wk), smP=ti2>0?t2st(TDB.weeks[ti2-1]):null;
+  const tops=bda(TDB.all,wk,null).slice(0,3);
+  const mkL=(type,label,color)=>{
+    const cur=sm[type],prv=smP?smP[type]:null;
+    return `• <span style="color:${color};font-weight:600">${label}</span> ` +
+      `운영 <strong>${cur.cnt}개</strong>${prv?` ${wowTxt(wowV(cur.cnt,prv.cnt))}`:''}　` +
+      `평균UV <strong>${FC(cur.avg)}</strong>${prv?` ${wowTxt(wowV(cur.avg,prv.avg))}`:''}`; 
+  };
+  el.innerHTML=[
+    `📅 <strong>${wk}</strong> Today B tv 이용 현황 요약`,``,
+    mkL('mass','Mass','#378ADD'),
+    mkL('target','Target','#E24B4A'),
+    mkL('content','콘텐츠','#639922'),``,
+    `• Top 3 배너 (일평균 UV 기준)`,
+    ...tops.map((r,i)=>`  ${i+1}. <strong>${r.banner}</strong> — ${FC(r.avgUV)}`),
+  ].join('<br>');
+}
+
+function genP3Insight() {
+  if(!CB||!CB.weeks.length) return;
+  const el=document.getElementById('insight-p3'); if(!el) return;
+  const wk=CB.weeks[ti3];
+  const gm=cbWS('gen',wk), rm=cbWS('race',wk);
+  const gmP=ti3>0?cbWS('gen',CB.weeks[ti3-1]):null;
+  const rmP=ti3>0?cbWS('race',CB.weeks[ti3-1]):null;
+  const topGen=blkDA('gen',wk).slice(0,3);
+  const topRace=blkDA('race',wk).slice(0,3);
+  const mkL2=(cur,prv,label,color)=>`• <span style="color:${color};font-weight:600">${label}</span> ` +
+    `운영 <strong>${cur.opCount}개</strong>${prv?` ${wowTxt(wowV(cur.opCount,prv.opCount))}`:''}　` +
+    `일평균UV <strong>${FC(cur.avgUV)}</strong>${prv?` ${wowTxt(wowV(cur.avgUV,prv.avgUV))}` :''}`;
+  el.innerHTML=[
+    `📅 <strong>${wk}</strong> 콘텐츠 블록 이용 현황 요약`,``,
+    mkL2(gm,gmP,'일반 콘텐츠 블록','#059669'),
+    mkL2(rm,rmP,'RACE 블록','#3B5BDB'),``,
+    `• Top 3 일반 블록`, ...topGen.map((r,i)=>`  ${i+1}. <strong>${r.block}</strong> — ${FC(r.avgUV)}`),``,
+    `• Top 3 RACE 블록`, ...topRace.map((r,i)=>`  ${i+1}. <strong>${r.block}</strong> — ${FC(r.avgUV)}`),
+  ].join('<br>');
+}
+
 
 /* ═══════════════════════════════════════
    INIT — 페이지 열리면 자동 연결
