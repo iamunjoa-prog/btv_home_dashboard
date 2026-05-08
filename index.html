@@ -325,6 +325,10 @@ document.getElementById('ovCfg').addEventListener('click', e => { if(e.target===
 ═══════════════════════════════════════ */
 const N  = n => n!=null ? Math.round(n).toLocaleString() : '-';
 const F1 = n => n!=null ? parseFloat(n).toFixed(1) : '-';
+// 콤마 포함, 소수점 없음 (UV/PV/매출용)
+const NC = n => n!=null ? Math.round(n).toLocaleString() : '-';
+// 콤마 포함, 소수점 1자리 (일평균용)
+const FC = n => n!=null ? parseFloat(n).toFixed(1).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '-';
 const FM = n => {
   if(n==null) return '-';
   if(n>=1e8) return (n/1e8).toFixed(2)+'억';
@@ -866,7 +870,7 @@ function rT2Sum() {
       h+=`<tr>
         <td${ti===0?' style="font-weight:700"':''}>${ti===0?sec.label:''}</td>
         <td style="color:${tp.color};font-weight:600">${tp.label}</td>
-        ${v.map((x,i)=>`<td${i===ti2?' class="sc"':''}>${sec.isI?N(x):F1(x)}</td>`).join('')}
+        ${v.map((x,i)=>`<td${i===ti2?' class="sc"':''}>${sec.isI?N(x):FC(x)}</td>`).join('')}
         <td>${w!==null?`<span class="${WC(w)}">${WA(w)}${Math.abs(parseFloat(w))}%</span>`:'-'}</td>
       </tr>`;
     });
@@ -893,7 +897,7 @@ function rT2Rank() {
     h+=`<tr>
       <td style="text-align:center"><span class="rb2${i<3?' t3':''}">${i+1}</span></td>
       <td style="text-align:left">${r.banner}</td>
-      <td>${F1(r.avgUV)}</td><td>${F1(r.avgPV)}</td><td>${N(r.avgRev)}</td>
+      <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${NC(r.avgRev)}</td>
       <td>${p?wCell(r.avgUV,p.avgUV):'<span class="ntag">NEW</span>'}</td>
       <td>${p?wCell(r.avgPV,p.avgPV):'<span class="ntag">NEW</span>'}</td>
     </tr>`;
@@ -985,13 +989,13 @@ function rT3Sum() {
     const rw=rv.length>=2?WOW(rv[rv.length-1],rv[rv.length-2]):null;
     h+=`<tr class="rh"><td rowspan="3" style="border-right:1px solid var(--bd)">${sec.label}</td>
       <td style="font-weight:700">전체</td>
-      ${tv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):F1(v)}</td>`).join('')}
+      ${tv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
       <td>${tw!==null?`<span class="${WC(tw)}">${WA(tw)}${Math.abs(parseFloat(tw))}%</span>`:'-'}</td></tr>`;
     h+=`<tr><td style="padding-left:18px;color:#059669">일반</td>
-      ${gv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):F1(v)}</td>`).join('')}
+      ${gv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
       <td>${gw!==null?`<span class="${WC(gw)}">${WA(gw)}${Math.abs(parseFloat(gw))}%</span>`:'-'}</td></tr>`;
     h+=`<tr><td style="padding-left:18px;color:#3B5BDB">RACE</td>
-      ${rv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):F1(v)}</td>`).join('')}
+      ${rv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
       <td>${rw!==null?`<span class="${WC(rw)}">${WA(rw)}${Math.abs(parseFloat(rw))}%</span>`:'-'}</td></tr>`;
     h+=`<tr><td colspan="${CB.weeks.length+3}" style="height:5px;background:var(--sf2)"></td></tr>`;
   });
@@ -1017,7 +1021,7 @@ function rT3Rank() {
     h+=`<tr>
       <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${i<3?'background:'+col:''}">${i+1}</span></td>
       <td style="text-align:left">${r.block}</td>
-      <td>${F1(r.avgUV)}</td><td>${F1(r.avgPV)}</td><td>${N(r.totalRev)}</td>
+      <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${NC(r.totalRev)}</td>
       <td>${isN?'<span class="ntag">NEW</span>':wCell(r.avgUV,p.avgUV)}</td>
       <td>${isN?'<span class="ntag">NEW</span>':wCell(r.avgPV,p.avgPV)}</td>
       <td>${isN?'<span class="ntag">NEW</span>':wCell(r.totalRev,p.totalRev)}</td>
