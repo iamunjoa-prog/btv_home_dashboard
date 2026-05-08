@@ -881,28 +881,59 @@ function rT2Sum() {
   const sm={}; TDB.weeks.forEach(w=>sm[w]=t2st(w));
   const secs=[
     {key:'cnt', label:'운영 수량',    isI:true},
-    {key:'avg', label:'평균 UV'},
-    {key:'top5',label:'TOP5 평균 UV'},
-    {key:'max', label:'Max UV'},
+    {key:'avg', label:'평균 UV (일평균 기준)'},
+    {key:'top5',label:'평균 UV_TOP5 (일평균 기준)'},
+    {key:'max', label:'Max UV (일평균 기준)'},
   ];
   const types=[
     {t:'mass',    label:'Mass',   color:'#378ADD'},
     {t:'target',  label:'Target', color:'#E24B4A'},
     {t:'content', label:'콘텐츠', color:'#639922'},
   ];
-  let h=`<thead><tr><th>구분</th><th>상세</th>${TDB.weeks.map((w,i)=>`<th${i===ti2?' class="sel"':''}>${w}</th>`).join('')}<th>WoW(%)</th></tr></thead><tbody>`;
+
+  // 주차 헤더: 날짜 범위 표시 (TDB 데이터에서 주차별 날짜 범위 계산)
+  const wkDateRange = w => {
+    const rows = TDB.all.filter(d=>d.week===w);
+    if(!rows.length) return '';
+    const dates = rows.map(d=>d.date).sort((a,b)=>a-b);
+    const fmt = d => `${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
+    return `(${fmt(dates[0])} ~ ${fmt(dates[dates.length-1])})`;
+  };
+
+  const li = TDB.weeks.length - 1; // 마지막 주차 인덱스
+
+  let h=`<thead><tr>
+    <th>구분</th><th>상세 구분</th>
+    ${TDB.weeks.map((w,i)=>`<th${i===ti2?' class="sel"':''} style="text-align:right">
+      ${w}<div style="font-size:10px;font-weight:400;opacity:.8;margin-top:2px">${wkDateRange(w)}</div>
+    </th>`).join('')}
+    <th style="text-align:right">WoW</th>
+    <th style="text-align:right">WoW(%)</th>
+  </tr></thead><tbody>`;
+
   secs.forEach(sec => {
     types.forEach((tp,ti) => {
       const v=TDB.weeks.map(w=>sm[w][tp.t][sec.key]);
-      const w=v.length>=2?WOW(v[v.length-1],v[v.length-2]):null;
+      const cv=v[li], pv2=li>0?v[li-1]:null;
+      const wowAbs = pv2!=null ? (cv-pv2) : null;
+      const wowPct = pv2!=null&&pv2!==0 ? ((cv-pv2)/Math.abs(pv2)*100).toFixed(1) : null;
+
+      const wowAbsHtml = wowAbs!==null
+        ? `<span class="${wowAbs>0?'pos':'neg'}">${wowAbs>0?'+':''}${sec.isI?Math.round(wowAbs).toLocaleString():FC(wowAbs)}</span>`
+        : '-';
+      const wowPctHtml = wowPct!==null
+        ? `<span class="${WC(wowPct)}">${WA(wowPct)}${Math.abs(parseFloat(wowPct))}%</span>`
+        : '-';
+
       h+=`<tr>
-        <td${ti===0?' style="font-weight:700"':''}>${ti===0?sec.label:''}</td>
+        <td${ti===0?` style="font-weight:700;border-right:1px solid var(--bd)" rowspan="3"`:'style="display:none"'}>${ti===0?sec.label:''}</td>
         <td style="color:${tp.color};font-weight:600">${tp.label}</td>
         ${v.map((x,i)=>`<td${i===ti2?' class="sc"':''}>${sec.isI?N(x):FC(x)}</td>`).join('')}
-        <td>${w!==null?`<span class="${WC(w)}">${WA(w)}${Math.abs(parseFloat(w))}%</span>`:'-'}</td>
+        <td style="text-align:right">${wowAbsHtml}</td>
+        <td style="text-align:right">${wowPctHtml}</td>
       </tr>`;
     });
-    h+=`<tr><td colspan="${TDB.weeks.length+3}" style="height:5px;background:var(--sf2)"></td></tr>`;
+    h+=`<tr><td colspan="${TDB.weeks.length+4}" style="height:6px;background:var(--sf2)"></td></tr>`;
   });
   if(document.getElementById('t2s')) document.getElementById('t2s').innerHTML = h+'</tbody>';
 }
@@ -1015,27 +1046,63 @@ function rT3Sum() {
     {key:'avgUV',  label:'일평균 UV'},
     {key:'avgPV',  label:'일평균 PV'},
   ];
-  let h=`<thead><tr><th>구분</th><th>상세</th>${CB.weeks.map((w,i)=>`<th${i===ti3?' class="sel"':''}>${w}</th>`).join('')}<th>WoW(%)</th></tr></thead><tbody>`;
+
+  const wkDateRange = w => {
+    const rows = [...(CB.gen||[]),...(CB.race||[])].filter(d=>d.week===w);
+    if(!rows.length) return '';
+    const dates = rows.map(d=>d.date).sort((a,b)=>a-b);
+    const fmt = d => `${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
+    return `(${fmt(dates[0])} ~ ${fmt(dates[dates.length-1])})`;
+  };
+
+  const li = CB.weeks.length - 1;
+
+  let h=`<thead><tr>
+    <th>구분</th><th>상세</th>
+    ${CB.weeks.map((w,i)=>`<th${i===ti3?' class="sel"':''} style="text-align:right">
+      ${w}<div style="font-size:10px;font-weight:400;opacity:.8;margin-top:2px">${wkDateRange(w)}</div>
+    </th>`).join('')}
+    <th style="text-align:right">WoW</th>
+    <th style="text-align:right">WoW(%)</th>
+  </tr></thead><tbody>`;
+
   secs.forEach(sec=>{
     const tv=CB.weeks.map(w=>(rm[w][sec.key]||0)+(gm[w][sec.key]||0));
     const gv=CB.weeks.map(w=>gm[w][sec.key]||0);
     const rv=CB.weeks.map(w=>rm[w][sec.key]||0);
-    const tw=tv.length>=2?WOW(tv[tv.length-1],tv[tv.length-2]):null;
-    const gw=gv.length>=2?WOW(gv[gv.length-1],gv[gv.length-2]):null;
-    const rw=rv.length>=2?WOW(rv[rv.length-1],rv[rv.length-2]):null;
-    h+=`<tr class="rh"><td rowspan="3" style="border-right:1px solid var(--bd)">${sec.label}</td>
+
+    const mkWow = (vals) => {
+      const cv=vals[li], pv2=li>0?vals[li-1]:null;
+      const abs = pv2!=null ? cv-pv2 : null;
+      const pct = pv2!=null&&pv2!==0 ? ((cv-pv2)/Math.abs(pv2)*100).toFixed(1) : null;
+      const absH = abs!==null ? `<span class="${abs>0?'pos':'neg'}">${abs>0?'+':''}${sec.isI?Math.round(abs).toLocaleString():FC(abs)}</span>` : '-';
+      const pctH = pct!==null ? `<span class="${WC(pct)}">${WA(pct)}${Math.abs(parseFloat(pct))}%</span>` : '-';
+      return {absH, pctH};
+    };
+
+    const {absH:tA, pctH:tP} = mkWow(tv);
+    const {absH:gA, pctH:gP} = mkWow(gv);
+    const {absH:rA, pctH:rP} = mkWow(rv);
+
+    h+=`<tr class="rh">
+      <td rowspan="3" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
       <td style="font-weight:700">전체</td>
       ${tv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
-      <td>${tw!==null?`<span class="${WC(tw)}">${WA(tw)}${Math.abs(parseFloat(tw))}%</span>`:'-'}</td></tr>`;
-    h+=`<tr><td style="padding-left:18px;color:#059669">일반</td>
+      <td style="text-align:right">${tA}</td><td style="text-align:right">${tP}</td>
+    </tr>`;
+    h+=`<tr>
+      <td style="padding-left:18px;color:#059669">일반</td>
       ${gv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
-      <td>${gw!==null?`<span class="${WC(gw)}">${WA(gw)}${Math.abs(parseFloat(gw))}%</span>`:'-'}</td></tr>`;
-    h+=`<tr><td style="padding-left:18px;color:#3B5BDB">RACE</td>
+      <td style="text-align:right">${gA}</td><td style="text-align:right">${gP}</td>
+    </tr>`;
+    h+=`<tr>
+      <td style="padding-left:18px;color:#3B5BDB">RACE</td>
       ${rv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
-      <td>${rw!==null?`<span class="${WC(rw)}">${WA(rw)}${Math.abs(parseFloat(rw))}%</span>`:'-'}</td></tr>`;
-    h+=`<tr><td colspan="${CB.weeks.length+3}" style="height:5px;background:var(--sf2)"></td></tr>`;
+      <td style="text-align:right">${rA}</td><td style="text-align:right">${rP}</td>
+    </tr>`;
+    h+=`<tr><td colspan="${CB.weeks.length+4}" style="height:6px;background:var(--sf2)"></td></tr>`;
   });
-  if(document.getElementById('t3s')) document.getElementById('t3s').innerHTML = h+'</tbody>';
+  if(document.getElementById('t3s')) document.getElementById('t3s').innerHTML=h+'</tbody>';
 }
 
 function t3tb(t,btn) { tt3=t; btn.closest('.tbar').querySelectorAll('.tb').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); rT3Rank(); }
