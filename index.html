@@ -651,6 +651,7 @@ function sw1(i) { hsi=i; rWb1(); rKG1(); rDG1(); rDN1(); rTbl1(); }
 
 function rKG1() {
   const i=hsi, p=i>0?i-1:null;
+  if(!document.getElementById('kg1')) return;
   document.getElementById('kg1').innerHTML = [
     {l:'홈 이용 UV',    v:HD.uv.total[i],     pv:p!==null?HD.uv.total[p]:null},
     {l:'홈 탐색 PV',    v:HD.pv.total[i],     pv:p!==null?HD.pv.total[p]:null},
@@ -679,6 +680,7 @@ function rDG1() {
   const tpP  = bP ? (bP[ti]/HD.uv.nonSimple[p]*100).toFixed(1) : null;
   const tpW  = tpP!==null ? (parseFloat(tp)-parseFloat(tpP)).toFixed(1) : null;
 
+  if(!document.getElementById('dg1')) return;
   document.getElementById('dg1').innerHTML = `
     <div class="dc bl">
       <div class="di">📊</div><div class="dll">홈 활용도</div>
