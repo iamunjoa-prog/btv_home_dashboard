@@ -642,7 +642,7 @@ function shortWk(w) {
 function rWb1() {
   const d1 = HD.date1 || [];
   const d2 = HD.date2 || [];
-  document.getElementById('wb1').innerHTML = HD.weeks.map((w,i)=> {
+  if(document.getElementById('wb1')) document.getElementById('wb1').innerHTML = HD.weeks.map((w,i)=> {
     const range = (d1[i]&&d2[i]) ? `<span style="display:block;font-size:10px;opacity:.75;font-weight:400;margin-top:1px">${fmtMD(d1[i])}~${fmtMD(d2[i])}</span>` : '';
     return `<button class="wbtn${i===hsi?' on':''}" onclick="sw1(${i})" style="line-height:1.3;padding:5px 10px">${shortWk(w)}${range}</button>`;
   }).join('');
@@ -652,7 +652,7 @@ function sw1(i) { hsi=i; rWb1(); rKG1(); rDG1(); rDN1(); rTbl1(); }
 function rKG1() {
   const i=hsi, p=i>0?i-1:null;
   if(!document.getElementById('kg1')) return;
-  document.getElementById('kg1').innerHTML = [
+  if(document.getElementById('kg1')) document.getElementById('kg1').innerHTML = [
     {l:'홈 이용 UV',    v:HD.uv.total[i],     pv:p!==null?HD.uv.total[p]:null},
     {l:'홈 탐색 PV',    v:HD.pv.total[i],     pv:p!==null?HD.pv.total[p]:null},
     {l:'단순방문 UV',   v:HD.uv.simple[i],    pv:p!==null?HD.uv.simple[p]:null},
@@ -681,7 +681,7 @@ function rDG1() {
   const tpW  = tpP!==null ? (parseFloat(tp)-parseFloat(tpP)).toFixed(1) : null;
 
   if(!document.getElementById('dg1')) return;
-  document.getElementById('dg1').innerHTML = `
+  if(document.getElementById('dg1')) document.getElementById('dg1').innerHTML = `
     <div class="dc bl">
       <div class="di">📊</div><div class="dll">홈 활용도</div>
       <div class="dv">${eng}<span class="du">%</span></div>
@@ -716,7 +716,7 @@ function rDN1() {
     options:{cutout:'68%',animation:{duration:400},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${FM(c.raw)} (${(c.raw/tot*100).toFixed(1)}%)`}}}}
   });
   if(document.getElementById('dleg'))
-    document.getElementById('dleg').innerHTML = BN.map((n,k)=>`
+    if(document.getElementById('dleg')) document.getElementById('dleg').innerHTML = BN.map((n,k)=>`
       <div class="li"><div class="ld" style="background:${BC[k]}"></div>
       <div class="ln">${n}</div>
       <div class="lp" style="color:${BC[k]}">${(vs[k]/tot*100).toFixed(1)}%</div>
@@ -767,8 +767,7 @@ function rTbl1() {
   ];
   const d1 = HD.date1 || [];
   const d2 = HD.date2 || [];
-  document.getElementById('tbl1').innerHTML =
-    `<thead>
+  if(document.getElementById('tbl1')) document.getElementById('tbl1').innerHTML =     `<thead>
       <tr>
         <th>구분</th>
         ${HD.weeks.map((w,i)=>`<th${i===hsi?' class="sel"':''}>
@@ -786,7 +785,7 @@ function rTbl1() {
 ═══════════════════════════════════════ */
 function renderP2() { rWb2(); rT2All(); }
 function rWb2() {
-  document.getElementById('wb2').innerHTML = TDB.weeks.map((w,i)=>
+  if(document.getElementById('wb2')) document.getElementById('wb2').innerHTML = TDB.weeks.map((w,i)=>
     `<button class="wbtn${i===ti2?' on':''}" onclick="sw2(${i})">${w}</button>`).join('');
 }
 function sw2(i) { ti2=i; rWb2(); rT2All(); }
@@ -852,7 +851,7 @@ function rT2Sum() {
     });
     h+=`<tr><td colspan="${TDB.weeks.length+3}" style="height:5px;background:var(--sf2)"></td></tr>`;
   });
-  document.getElementById('t2s').innerHTML=h+'</tbody>';
+  if(document.getElementById('t2s')) document.getElementById('t2s').innerHTML = h+'</tbody>';
 }
 
 function t2tb(t,btn) { tt2=t; btn.closest('.tbar').querySelectorAll('.tb').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); rT2Rank(); }
@@ -878,7 +877,7 @@ function rT2Rank() {
       <td>${p?wCell(r.avgPV,p.avgPV):'<span class="ntag">NEW</span>'}</td>
     </tr>`;
   });
-  document.getElementById('t2r').innerHTML=h+'</tbody>';
+  if(document.getElementById('t2r')) document.getElementById('t2r').innerHTML = h+'</tbody>';
 }
 
 function rT2Ch() {
@@ -902,7 +901,7 @@ function rT2Ch() {
 ═══════════════════════════════════════ */
 function renderP3() { rWb3(); rT3All(); }
 function rWb3() {
-  document.getElementById('wb3').innerHTML = CB.weeks.map((w,i)=>
+  if(document.getElementById('wb3')) document.getElementById('wb3').innerHTML = CB.weeks.map((w,i)=>
     `<button class="wbtn${i===ti3?' on':''}" onclick="sw3(${i})">${w}</button>`).join('');
 }
 function sw3(i) { ti3=i; rWb3(); rT3All(); }
@@ -975,7 +974,7 @@ function rT3Sum() {
       <td>${rw!==null?`<span class="${WC(rw)}">${WA(rw)}${Math.abs(parseFloat(rw))}%</span>`:'-'}</td></tr>`;
     h+=`<tr><td colspan="${CB.weeks.length+3}" style="height:5px;background:var(--sf2)"></td></tr>`;
   });
-  document.getElementById('t3s').innerHTML=h+'</tbody>';
+  if(document.getElementById('t3s')) document.getElementById('t3s').innerHTML = h+'</tbody>';
 }
 
 function t3tb(t,btn) { tt3=t; btn.closest('.tbar').querySelectorAll('.tb').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); rT3Rank(); }
@@ -1003,7 +1002,7 @@ function rT3Rank() {
       <td>${isN?'<span class="ntag">NEW</span>':wCell(r.totalRev,p.totalRev)}</td>
     </tr>`;
   });
-  document.getElementById('t3r').innerHTML=h+'</tbody>';
+  if(document.getElementById('t3r')) document.getElementById('t3r').innerHTML = h+'</tbody>';
 }
 
 function rT3Ch() {
