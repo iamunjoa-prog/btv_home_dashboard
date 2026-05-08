@@ -535,12 +535,29 @@ function parseHomeCSV(text) {
 
   const DATA_START = 2; // C열(index 2)부터 데이터
 
-  // 날짜 범위
-  const date1 = lines[0].slice(DATA_START).filter(v => v && v.match(/\d{4}-\d{2}-\d{2}/));
-  const date2 = lines[1].slice(DATA_START).filter(v => v && v.match(/\d{4}-\d{2}-\d{2}/));
+  // Row 0: 메모행 (무시)
+  // Row 1: 날짜 시작
+  // Row 2: 날짜 종료
+  // Row 3: 구분 헤더 (무시)
+  // Row 4: 홈 이용(UV)
+  // Row 5: 단순방문
+  // Row 6: 단순방문 제외
+  // Row 7: Today B tv
+  // Row 8: 오늘 핫한 콘텐츠
+  // Row 9: 콘텐츠 블록/배너
+  // Row 10: RACE/랭킹
+  // Row 11: 홈 탐색(PV)
+  // Row 12: 단순방문
+  // Row 13: 단순방문 제외
+  // Row 14: Today B tv
+  // Row 15: 오늘 핫한 콘텐츠
+  // Row 16: 콘텐츠 블록/배너
+  // Row 17: RACE/랭킹
+
+  const date1 = lines[1].slice(DATA_START).filter(v => v && v.match(/\d{4}-\d{2}-\d{2}/));
+  const date2 = lines[2].slice(DATA_START).filter(v => v && v.match(/\d{4}-\d{2}-\d{2}/));
   const wkCount = Math.min(date1.length, date2.length);
 
-  // 주차 라벨을 date1(시작일)로부터 계산
   const wks = date1.slice(0, wkCount).map(d => getWL(parseDate(d))).filter(Boolean);
 
   const rw = i => (lines[i]||[]).slice(DATA_START, DATA_START + wkCount)
@@ -550,8 +567,8 @@ function parseHomeCSV(text) {
     weeks: wks,
     date1: date1.slice(0, wkCount),
     date2: date2.slice(0, wkCount),
-    uv: { total:rw(3), simple:rw(4), nonSimple:rw(5), todayBtv:rw(6), hotContent:rw(7), blockBnr:rw(8), race:rw(9) },
-    pv: { total:rw(10), simple:rw(11), nonSimple:rw(12), todayBtv:rw(13), hotContent:rw(14), blockBnr:rw(15), race:rw(16) }
+    uv: { total:rw(4), simple:rw(5), nonSimple:rw(6), todayBtv:rw(7), hotContent:rw(8), blockBnr:rw(9), race:rw(10) },
+    pv: { total:rw(11), simple:rw(12), nonSimple:rw(13), todayBtv:rw(14), hotContent:rw(15), blockBnr:rw(16), race:rw(17) }
   };
 }
 
