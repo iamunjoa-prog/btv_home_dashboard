@@ -205,8 +205,6 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
 
     <!-- ② 주간 실적 -->
     <div class="sec">주간 실적 <span class="sec-b">선택 주차 기준</span></div>
-    <div class="kg" id="kg1"></div>
-    <div class="dg3" id="dg1"></div>
     <div class="card" style="margin-bottom:12px">
       <div class="tbar"><button class="tb on" onclick="h1T('uv',this)">고객수 (UV)</button><button class="tb" onclick="h1T('pv',this)">이용량 (PV)</button></div>
       <div class="tw"><table id="tbl1"></table></div>
@@ -501,15 +499,34 @@ function parseHomeCSV(text) {
   const lines = text.trim().split('\n').map(l =>
     l.split(',').map(c => c.replace(/^"|"$/g,'').trim())
   );
-  // Row 0: 날짜행, Row 1: 주차 헤더(26-01-W1...), Row 2~: 데이터
-  // Row 9: 구분행(홈 탐색 PV), Row 10~: PV 데이터
-  const wks = lines[1].slice(1).filter(Boolean);
-  const rw  = i => (lines[i]||[]).slice(1, wks.length+1)
-                    .map(v => parseInt(v.replace(/,/g,'').replace(/[^0-9-]/g,''))||0);
+  // Row 0: 빈행
+  // Row 1: 날짜범위 첫줄 (2025-12-29, 2026-01-05...)
+  // Row 2: 날짜범위 둘째줄 (2026-01-04, 2026-01-11...)
+  // Row 3: 주차 헤더 (2026-01-W1, 2026-01-W2...)
+  // Row 4: 홈 이용(UV) total
+  // Row 5: 단순방문
+  // Row 6: 단순방문 제외
+  // Row 7: Today B tv
+  // Row 8: 오늘 핫한 콘텐츠
+  // Row 9: 콘텐츠 블록/배너
+  // Row 10: RACE/랭킹
+  // Row 11: 홈 탐색(PV) total
+  // Row 12: 단순방문
+  // Row 13: 단순방문 제외
+  // Row 14: Today B tv
+  // Row 15: 오늘 핫한 콘텐츠
+  // Row 16: 콘텐츠 블록/배너
+  // Row 17: RACE/랭킹
+  const wks   = lines[3].slice(1).filter(Boolean);
+  const date1 = lines[1].slice(1, wks.length+1); // 주차 시작일
+  const date2 = lines[2].slice(1, wks.length+1); // 주차 종료일
+  const rw    = i => (lines[i]||[]).slice(1, wks.length+1)
+                      .map(v => parseInt(v.replace(/,/g,'').replace(/[^0-9-]/g,''))||0);
   return {
     weeks: wks,
-    uv: { total:rw(2), simple:rw(3), nonSimple:rw(4), todayBtv:rw(5), hotContent:rw(6), blockBnr:rw(7), race:rw(8) },
-    pv: { total:rw(10), simple:rw(11), nonSimple:rw(12), todayBtv:rw(13), hotContent:rw(14), blockBnr:rw(15), race:rw(16) }
+    date1, date2,
+    uv: { total:rw(4), simple:rw(5), nonSimple:rw(6), todayBtv:rw(7), hotContent:rw(8), blockBnr:rw(9), race:rw(10) },
+    pv: { total:rw(11), simple:rw(12), nonSimple:rw(13), todayBtv:rw(14), hotContent:rw(15), blockBnr:rw(16), race:rw(17) }
   };
 }
 
@@ -609,9 +626,26 @@ function mkB(id, ds, fn, lbs) {
 ═══════════════════════════════════════ */
 function renderP1() { rWb1(); rKG1(); rDG1(); rCharts1(); rDN1(); rTbl1(); }
 
+function fmtMD(s) {
+  // "2026-01-26" → "1/26"
+  if(!s) return '';
+  const p = s.trim().split('-');
+  if(p.length===3) return `${+p[1]}/${+p[2]}`;
+  return s;
+}
+function shortWk(w) {
+  // "2026-01-W5" → "1-W5"
+  if(!w) return w;
+  const m = w.match(/\d{4}-(\d{2}-W\d+)/);
+  return m ? m[1].replace(/^0/,'') : w;
+}
 function rWb1() {
-  document.getElementById('wb1').innerHTML = HD.weeks.map((w,i)=>
-    `<button class="wbtn${i===hsi?' on':''}" onclick="sw1(${i})">${w}</button>`).join('');
+  const d1 = HD.date1 || [];
+  const d2 = HD.date2 || [];
+  document.getElementById('wb1').innerHTML = HD.weeks.map((w,i)=> {
+    const range = (d1[i]&&d2[i]) ? `<span style="display:block;font-size:10px;opacity:.75;font-weight:400;margin-top:1px">${fmtMD(d1[i])}~${fmtMD(d2[i])}</span>` : '';
+    return `<button class="wbtn${i===hsi?' on':''}" onclick="sw1(${i})" style="line-height:1.3;padding:5px 10px">${shortWk(w)}${range}</button>`;
+  }).join('');
 }
 function sw1(i) { hsi=i; rWb1(); rKG1(); rDG1(); rDN1(); rTbl1(); }
 
@@ -729,8 +763,18 @@ function rTbl1() {
     {k:'Today B tv',d:d.todayBtv,c:'rb'},{k:'오늘 핫한 콘텐츠',d:d.hotContent,c:'rb'},
     {k:'콘텐츠 블록/배너',d:d.blockBnr,c:'rb'},{k:'RACE/랭킹',d:d.race,c:'rb'}
   ];
+  const d1 = HD.date1 || [];
+  const d2 = HD.date2 || [];
   document.getElementById('tbl1').innerHTML =
-    `<thead><tr><th>구분</th>${HD.weeks.map((w,i)=>`<th${i===hsi?' class="sel"':''}>${w}</th>`).join('')}</tr></thead>` +
+    `<thead>
+      <tr>
+        <th>구분</th>
+        ${HD.weeks.map((w,i)=>`<th${i===hsi?' class="sel"':''}>
+          ${shortWk(w)}
+          <div style="font-size:10px;font-weight:400;color:${i===hsi?'var(--blue)':'var(--t3)'};margin-top:2px">${fmtMD(d1[i])||''}~${fmtMD(d2[i])||''}</div>
+        </th>`).join('')}
+      </tr>
+    </thead>` +
     `<tbody>${rows.map(r=>`<tr class="${r.c}"><td>${r.k}</td>${r.d.map((v,i)=>`<td${i===hsi?' class="sc"':''}>${(v||0).toLocaleString()}</td>`).join('')}</tr>`).join('')}</tbody>`;
 }
 
