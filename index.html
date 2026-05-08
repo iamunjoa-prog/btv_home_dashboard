@@ -518,37 +518,39 @@ function parseHomeCSV(text) {
   // Row 16: 콘텐츠 블록/배너
   // Row 17: RACE/랭킹
 
-  // 구조:
-  // Row 0: 빈행 | 빈행 | 2025-12-29 | 2026-01-05 | ...  (주차 시작일)
-  // Row 1: 빈행 | 빈행 | 2026-01-04 | 2026-01-11 | ...  (주차 종료일)
-  // Row 2: "2. 홈 이용 지표" | 빈 | 빈 | ...
-  // Row 3: 빈행 | "구분" | 2026-01-W1 | 2026-01-W2 | ... (주차헤더, C열=index2부터)
-  // Row 4: 빈행 | "홈 이용(UV)" | 4520287 | ...
-  // Row 5: 빈행 | "단순방문" | ...
-  // Row 6: 빈행 | "단순방문 제외" | ...
-  // Row 7: 빈행 | "Today B tv" | ...
-  // Row 8: 빈행 | "오늘 핫한 콘텐츠" | ...
-  // Row 9: 빈행 | "콘텐츠 블록/배너" | ...
-  // Row 10: 빈행 | "RACE/랭킹" | ...
-  // Row 11: 빈행 | "홈 탐색(PV)" | ...
-  // Row 12~17: PV 데이터
+  // 실제 CSV 구조:
+  // Row 0: "" | "" | 2025-12-29 | 2026-01-05 | ...  (주차 시작일, index 2부터)
+  // Row 1: "2. 홈 이용 지표" | "" | 2026-01-04 | 2026-01-11 | ... (주차 종료일)
+  // Row 2: "구분" | "" | "" | "" | ...  (주차헤더 없음)
+  // Row 3: "홈 이용(UV)" | "" | 4,520,287 | ...
+  // Row 4: "단순방문" | "" | ...
+  // Row 5: "단순방문 제외" | "" | ...
+  // Row 6: "Today B tv" | "" | ...
+  // Row 7: "오늘 핫한 콘텐츠" | "" | ...
+  // Row 8: "콘텐츠 블록/배너" | "" | ...
+  // Row 9: "RACE/랭킹" | "" | ...
+  // Row 10: "홈 탐색(PV)" | "" | ...
+  // Row 11~16: PV 데이터
 
-  // 주차 헤더가 시작하는 컬럼 인덱스 자동 탐지 (W 포함된 셀)
-  const wkStartIdx = lines[3].findIndex(v => v && v.includes('-W'));
-  const wks = lines[3].slice(wkStartIdx).filter(v => v && v.includes('-W'));
-  const wkCount = wks.length;
+  const DATA_START = 2; // C열(index 2)부터 데이터
 
-  const date1 = lines[0].slice(wkStartIdx, wkStartIdx + wkCount);
-  const date2 = lines[1].slice(wkStartIdx, wkStartIdx + wkCount);
+  // 날짜 범위
+  const date1 = lines[0].slice(DATA_START).filter(v => v && v.match(/\d{4}-\d{2}-\d{2}/));
+  const date2 = lines[1].slice(DATA_START).filter(v => v && v.match(/\d{4}-\d{2}-\d{2}/));
+  const wkCount = Math.min(date1.length, date2.length);
 
-  const rw = i => (lines[i]||[]).slice(wkStartIdx, wkStartIdx + wkCount)
+  // 주차 라벨을 date1(시작일)로부터 계산
+  const wks = date1.slice(0, wkCount).map(d => getWL(parseDate(d))).filter(Boolean);
+
+  const rw = i => (lines[i]||[]).slice(DATA_START, DATA_START + wkCount)
                     .map(v => parseInt((v||'').replace(/,/g,'').replace(/[^0-9]/g,''))||0);
 
   return {
     weeks: wks,
-    date1, date2,
-    uv: { total:rw(4), simple:rw(5), nonSimple:rw(6), todayBtv:rw(7), hotContent:rw(8), blockBnr:rw(9), race:rw(10) },
-    pv: { total:rw(11), simple:rw(12), nonSimple:rw(13), todayBtv:rw(14), hotContent:rw(15), blockBnr:rw(16), race:rw(17) }
+    date1: date1.slice(0, wkCount),
+    date2: date2.slice(0, wkCount),
+    uv: { total:rw(3), simple:rw(4), nonSimple:rw(5), todayBtv:rw(6), hotContent:rw(7), blockBnr:rw(8), race:rw(9) },
+    pv: { total:rw(10), simple:rw(11), nonSimple:rw(12), todayBtv:rw(13), hotContent:rw(14), blockBnr:rw(15), race:rw(16) }
   };
 }
 
