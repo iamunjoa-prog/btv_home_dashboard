@@ -143,6 +143,23 @@ tbody td:first-child{text-align:left;font-weight:500}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:1px solid var(--bd)}
+
+/* 테이블 헤더 색상 */
+thead th { background:#f0f4ff !important; color:var(--t2); }
+thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
+
+/* 다운로드/캡처 버튼 */
+.tbl-actions { display:flex; gap:6px; margin-bottom:10px; }
+.chart-wrap { position:relative; }
+.chart-cap-btn {
+  position:absolute; top:8px; right:8px;
+  font-size:11px; font-weight:500; padding:4px 10px;
+  border-radius:6px; border:1px solid var(--bd);
+  background:rgba(255,255,255,.9); color:var(--t2);
+  cursor:pointer; font-family:inherit; transition:all .15s;
+  backdrop-filter:blur(4px);
+}
+.chart-cap-btn:hover { background:var(--surface2); color:var(--t1); }
 </style>
 </head>
 <body>
@@ -197,31 +214,35 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
     <div class="wbar" id="wb1"></div>
 
     <!-- ① 홈 이용 UV 추이 (풀 width, 흐름 먼저) -->
-    <div class="card" style="margin-bottom:12px">
+    <div class="card chart-wrap" style="margin-bottom:12px">
       <div class="cft">홈 이용 UV 추이</div>
       <div class="cfd">전체 · 단순방문 · 단순방문 제외</div>
       <canvas id="cUV" height="110"></canvas>
+      <button class="chart-cap-btn" onclick="captureChart('cUV','홈이용UV추이')">📷 저장</button>
     </div>
 
     <!-- ② 주간 실적 -->
     <div class="sec">주간 실적 <span class="sec-b">선택 주차 기준</span></div>
     <div class="card" style="margin-bottom:12px">
-      <div class="tbar"><button class="tb on" onclick="h1T('uv',this)">고객수 (UV)</button><button class="tb" onclick="h1T('pv',this)">이용량 (PV)</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="tbar" style="margin-bottom:0"><button class="tb on" onclick="h1T('uv',this)">고객수 (UV)</button><button class="tb" onclick="h1T('pv',this)">이용량 (PV)</button></div>
+        <button class="bsm" onclick="excelDown('tbl1','홈_주간실적')">⬇ 엑셀 다운로드</button>
+      </div>
       <div class="tw"><table id="tbl1"></table></div>
     </div>
 
     <!-- ③ 홈 이용 추이 -->
     <div class="sec">홈 이용 추이</div>
     <div class="cg2">
-      <div class="card"><div class="cft">UV 추이</div><div class="cfd">전체 · 단순방문 · 단순방문 제외</div><canvas id="cUV2" height="200"></canvas></div>
-      <div class="card"><div class="cft">활용도 추이</div><div class="cfd">전체 UV 중 단순방문 제외 비율 (%)</div><canvas id="cEG" height="200"></canvas></div>
+      <div class="card"><div class="cft">UV 추이</div><div class="cfd">전체 · 단순방문 · 단순방문 제외</div><canvas id="cUV2" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cUV2','UV추이')">📷 저장</button></div>
+      <div class="card"><div class="cft">활용도 추이</div><div class="cfd">전체 UV 중 단순방문 제외 비율 (%)</div><canvas id="cEG" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cEG','홈활용도추이')">📷 저장</button></div>
     </div>
 
     <!-- ④ 블록별 현황 -->
     <div class="sec">블록별 현황</div>
     <div class="cg2">
-      <div class="card"><div class="cft">블록별 UV 추이</div><div class="cfd">단순방문 제외 내 블록별 (중복 포함)</div><canvas id="cBK" height="200"></canvas></div>
-      <div class="card"><div class="cft">블록별 점유율 추이</div><div class="cfd">단순방문 제외 UV 기준 · 커서 올리면 비율 확인</div><canvas id="cSK" height="200"></canvas></div>
+      <div class="card"><div class="cft">블록별 UV 추이</div><div class="cfd">단순방문 제외 내 블록별 (중복 포함)</div><canvas id="cBK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cBK','블록별UV추이')">📷 저장</button></div>
+      <div class="card"><div class="cft">블록별 점유율 추이</div><div class="cfd">단순방문 제외 UV 기준 · 커서 올리면 비율 확인</div><canvas id="cSK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cSK','블록별점유율추이')">📷 저장</button></div>
     </div>
   </div>
 </div>
@@ -231,19 +252,28 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
   <div id="p2-spin" class="spinner-wrap"><div class="spinner"></div><span>Today B tv 데이터 불러오는 중...</span></div>
   <div id="p2-body" style="display:none">
     <div class="wbar" id="wb2"></div>
-    <div class="sec">① 주간 실적 Summary</div>
+    <div class="sec" style="justify-content:space-between">
+      <span>① 주간 실적 Summary</span>
+      <button class="bsm" onclick="excelDown('t2s','TDB_주간Summary')">⬇ 엑셀 다운로드</button>
+    </div>
     <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t2s"></table></div></div>
     <div class="sec">② 선택 주차 배너 랭킹 <span class="sec-b" id="t2wl"></span></div>
     <div class="tbar">
-      <button class="tb on" onclick="t2tb('mass',this)">📌 Mass</button>
+      <button class="tb on" onclick="t2tb('all',this)">📊 전체</button>
+      <button class="tb" onclick="t2tb('mass',this)">📌 Mass</button>
       <button class="tb" onclick="t2tb('target',this)">🎯 Target</button>
       <button class="tb" onclick="t2tb('content',this)">🎬 콘텐츠</button>
     </div>
-    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t2r"></table></div></div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="bsm" onclick="excelDown('t2r','TDB_배너랭킹')">⬇ 엑셀 다운로드</button>
+      </div>
+      <div class="tw"><table id="t2r"></table></div>
+    </div>
     <div class="sec">③ 추이 차트</div>
     <div class="cg2">
-      <div class="card"><div class="cft">운영 수량 추이</div><canvas id="c2c" height="200"></canvas></div>
-      <div class="card"><div class="cft">평균 UV 추이</div><canvas id="c2a" height="200"></canvas></div>
+      <div class="card"><div class="cft">운영 수량 추이</div><canvas id="c2c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2c','운영수량추이')">📷 저장</button></div>
+      <div class="card"><div class="cft">평균 UV 추이</div><canvas id="c2a" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2a','평균UV추이')">📷 저장</button></div>
     </div>
   </div>
 </div>
@@ -253,18 +283,26 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
   <div id="p3-spin" class="spinner-wrap"><div class="spinner"></div><span>콘텐츠 블록 데이터 불러오는 중...</span></div>
   <div id="p3-body" style="display:none">
     <div class="wbar" id="wb3"></div>
-    <div class="sec">① 주간 실적 Summary</div>
+    <div class="sec" style="justify-content:space-between">
+      <span>① 주간 실적 Summary</span>
+      <button class="bsm" onclick="excelDown('t3s','블록_주간Summary')">⬇ 엑셀 다운로드</button>
+    </div>
     <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t3s"></table></div></div>
     <div class="sec">② 주차별 블록 랭킹 <span class="sec-b" id="t3wl"></span></div>
     <div class="tbar">
       <button class="tb on" onclick="t3tb('gen',this)">🟢 일반 콘텐츠 블록</button>
       <button class="tb" onclick="t3tb('race',this)">🔵 RACE 블록</button>
     </div>
-    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t3r"></table></div></div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="bsm" onclick="excelDown('t3r','블록_랭킹')">⬇ 엑셀 다운로드</button>
+      </div>
+      <div class="tw"><table id="t3r"></table></div>
+    </div>
     <div class="sec">③ 추이 차트</div>
     <div class="cg2">
-      <div class="card"><div class="cft">운영 수량 추이</div><canvas id="c3c" height="200"></canvas></div>
-      <div class="card"><div class="cft">일평균 UV 추이</div><canvas id="c3u" height="200"></canvas></div>
+      <div class="card"><div class="cft">운영 수량 추이</div><canvas id="c3c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3c','운영수량추이_블록')">📷 저장</button></div>
+      <div class="card"><div class="cft">일평균 UV 추이</div><canvas id="c3u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3u','일평균UV추이')">📷 저장</button></div>
     </div>
   </div>
 </div>
@@ -291,7 +329,7 @@ let CFG = JSON.parse(JSON.stringify(DEFAULT_CFG));
    STATE
 ═══════════════════════════════════════ */
 let HD=null,  hsi=0, htt='uv';
-let TDB=null, ti2=0, tt2='mass';
+let TDB=null, ti2=0, tt2='all';
 let CB=null,  ti3=0, tt3='gen';
 const CH = {};
 
@@ -633,7 +671,7 @@ function rWb1() {
   const d2 = HD.date2 || [];
   if(document.getElementById('wb1')) document.getElementById('wb1').innerHTML = HD.weeks.map((w,i)=> {
     const range = (d1[i]&&d2[i]) ? `<span style="display:block;font-size:10px;opacity:.75;font-weight:400;margin-top:1px">${fmtMD(d1[i])}~${fmtMD(d2[i])}</span>` : '';
-    return `<button class="wbtn${i===hsi?' on':''}" onclick="sw1(${i})" style="line-height:1.3;padding:5px 10px">${shortWk(w)}${range}</button>`;
+    return `<button class="wbtn${i===hsi?' on':''}" onclick="sw1(${i})" style="line-height:1.3;padding:5px 10px">${w}${range}</button>`;
   }).join('');
 }
 function sw1(i) { hsi=i; rWb1(); rKG1(); rDG1(); rDN1(); rTbl1(); }
@@ -756,16 +794,42 @@ function rTbl1() {
   ];
   const d1 = HD.date1 || [];
   const d2 = HD.date2 || [];
-  if(document.getElementById('tbl1')) document.getElementById('tbl1').innerHTML =     `<thead>
+  const li = HD.weeks.length - 1; // 마지막 주차 인덱스
+
+  const tblEl = document.getElementById('tbl1');
+  if(!tblEl) return;
+
+  tblEl.innerHTML =
+    `<thead>
       <tr>
         <th>구분</th>
         ${HD.weeks.map((w,i)=>`<th${i===hsi?' class="sel"':''}>
-          ${shortWk(w)}
+          ${w}
           <div style="font-size:10px;font-weight:400;color:${i===hsi?'var(--blue)':'var(--t3)'};margin-top:2px">${fmtMD(d1[i])||''}~${fmtMD(d2[i])||''}</div>
         </th>`).join('')}
+        <th style="color:var(--t3);font-size:11px;white-space:nowrap">WoW(%)</th>
       </tr>
     </thead>` +
-    `<tbody>${rows.map(r=>`<tr class="${r.c}"><td>${r.k}</td>${r.d.map((v,i)=>`<td${i===hsi?' class="sc"':''}>${(v||0).toLocaleString()}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    `<tbody>${rows.map(r=>{
+      const cv = r.d[li], pv2 = li>0?r.d[li-1]:null;
+      const w = pv2!=null&&pv2!==0 ? ((cv-pv2)/Math.abs(pv2)*100).toFixed(1) : null;
+      const wowHtml = w!==null
+        ? `<span class="${parseFloat(w)>0?'pos':'neg'}">${parseFloat(w)>0?'+':''}${w}%</span>`
+        : '-';
+      return `<tr class="${r.c}"><td>${r.k}</td>${r.d.map((v,i)=>`<td${i===hsi?' class="sc"':''}>${(v||0).toLocaleString()}</td>`).join('')}<td>${wowHtml}</td></tr>`;
+    }).join('')}</tbody>`;
+
+  // 선택 주차(최신)가 보이도록 스크롤
+  requestAnimationFrame(() => {
+    const wrap = tblEl.closest('.tw');
+    if(!wrap) return;
+    const selTh = tblEl.querySelector('th.sel');
+    if(selTh) {
+      const thRight = selTh.offsetLeft + selTh.offsetWidth;
+      const wrapWidth = wrap.offsetWidth;
+      wrap.scrollLeft = Math.max(0, thRight - wrapWidth + 120);
+    }
+  });
 }
 
 /* ═══════════════════════════════════════
@@ -847,26 +911,34 @@ function t2tb(t,btn) { tt2=t; btn.closest('.tbar').querySelectorAll('.tb').forEa
 
 function rT2Rank() {
   const sw=TDB.weeks[ti2], pw=ti2>0?TDB.weeks[ti2-1]:null;
-  const curr=bda(TDB.all,sw,tt2), prev=pw?bda(TDB.all,pw,tt2):[];
+  const typeFilter = tt2==='all' ? null : tt2;
+  const curr=bda(TDB.all,sw,typeFilter), prev=pw?bda(TDB.all,pw,typeFilter):[];
   const pm={}; prev.forEach(p=>pm[p.banner]=p);
+  const showType = tt2==='all';
+  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'};
+  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'};
+  const cols = showType ? 8 : 7;
   let h=`<thead><tr>
     <th style="width:44px">Rank</th>
     <th style="text-align:left;min-width:240px">배너명</th>
+    ${showType?'<th>타입</th>':''}
     <th>일평균 UV</th><th>일평균 PV</th><th>일평균 매출</th>
     <th>UV WoW</th><th>PV WoW</th>
   </tr></thead><tbody>`;
-  if(!curr.length) { h+=`<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`; }
+  if(!curr.length) h+=`<tr><td colspan="${cols}" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`;
   else curr.forEach((r,i)=>{
     const p=pm[r.banner];
+    const typeCol=showType?`<td style="color:${typeColor[r.type]||'var(--t2)'};font-weight:600;font-size:11px">${typeLabel[r.type]||r.type}</td>`:'';
     h+=`<tr>
       <td style="text-align:center"><span class="rb2${i<3?' t3':''}">${i+1}</span></td>
       <td style="text-align:left">${r.banner}</td>
+      ${typeCol}
       <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${NC(r.avgRev)}</td>
       <td>${p?wCell(r.avgUV,p.avgUV):'<span class="ntag">NEW</span>'}</td>
       <td>${p?wCell(r.avgPV,p.avgPV):'<span class="ntag">NEW</span>'}</td>
     </tr>`;
   });
-  if(document.getElementById('t2r')) document.getElementById('t2r').innerHTML = h+'</tbody>';
+  if(document.getElementById('t2r')) document.getElementById('t2r').innerHTML=h+'</tbody>';
 }
 
 function rT2Ch() {
@@ -1006,6 +1078,55 @@ function rT3Ch() {
     {label:'일반',data:CB.weeks.map(w=>+gm[w].avgUV.toFixed(1)),borderColor:'#059669',tension:.4,pointRadius:3,borderWidth:2,backgroundColor:'transparent'},
     {label:'RACE',data:CB.weeks.map(w=>+rm[w].avgUV.toFixed(1)),borderColor:'#3B5BDB',tension:.4,pointRadius:3,borderWidth:2,backgroundColor:'transparent'},
   ], oU, CB.weeks);
+}
+
+/* ═══════════════════════════════════════
+   엑셀 다운로드
+═══════════════════════════════════════ */
+function excelDown(tableId, filename) {
+  const tbl = document.getElementById(tableId);
+  if(!tbl) return;
+  // CSV 변환
+  const rows = Array.from(tbl.querySelectorAll('tr'));
+  const csv = rows.map(tr =>
+    Array.from(tr.querySelectorAll('th,td'))
+      .map(td => {
+        const t = td.innerText.replace(/\n/g,' ').replace(/,/g,'').trim();
+        return `"${t}"`;
+      }).join(',')
+  ).join('\n');
+
+  // BOM 추가 (엑셀 한글 깨짐 방지)
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}_${new Date().toLocaleDateString('ko-KR').replace(/\./g,'').replace(/ /g,'')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════
+   차트 이미지 캡처
+═══════════════════════════════════════ */
+function captureChart(canvasId, filename) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+
+  // 배경 흰색으로 캡처
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = canvas.width;
+  tmpCanvas.height = canvas.height;
+  const ctx = tmpCanvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+  ctx.drawImage(canvas, 0, 0);
+
+  const a = document.createElement('a');
+  a.href = tmpCanvas.toDataURL('image/png');
+  a.download = `${filename}_${new Date().toLocaleDateString('ko-KR').replace(/\./g,'').replace(/ /g,'')}.png`;
+  a.click();
 }
 
 /* ═══════════════════════════════════════
