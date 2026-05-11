@@ -177,9 +177,36 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   backdrop-filter:blur(4px);
 }
 .chart-cap-btn:hover { background:var(--surface2); color:var(--t1); }
+
+/* ── 비밀번호 화면 ── */
+.pw-screen{position:fixed;inset:0;z-index:9999;background:#f5f5f7;display:flex;align-items:center;justify-content:center}
+.pw-box{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.12);padding:40px 36px;width:360px;max-width:calc(100vw - 32px);text-align:center}
+.pw-logo{font-size:15px;font-weight:700;margin-bottom:28px;color:#1d1d1f}.pw-logo span{color:#0071e3}
+.pw-title{font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:6px}
+.pw-sub{font-size:13px;color:#86868b;margin-bottom:24px}
+.pw-input{width:100%;padding:12px 16px;border:1px solid rgba(0,0,0,.12);border-radius:12px;font-size:16px;font-family:inherit;text-align:center;letter-spacing:4px;outline:none;transition:border-color .15s;background:#f5f5f7}
+.pw-input:focus{border-color:#0071e3;background:#fff}
+.pw-input.err{border-color:#ff3b30;animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.pw-btn{width:100%;padding:13px;border-radius:12px;border:none;background:#0071e3;color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:12px;transition:opacity .15s}
+.pw-btn:hover{opacity:.88}
+.pw-err{font-size:13px;color:#ff3b30;margin-top:10px;min-height:18px}
 </style>
 </head>
 <body>
+<!-- 비밀번호 화면 -->
+<div class="pw-screen" id="pwScreen">
+  <div class="pw-box">
+    <div class="pw-logo">홈 이용 <span>Dashboard</span></div>
+    <div class="pw-title">🔒 접근 제한</div>
+    <div class="pw-sub">비밀번호를 입력해주세요</div>
+    <input class="pw-input" id="pwInput" type="password" placeholder="••••" maxlength="20"
+      onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">확인</button>
+    <div class="pw-err" id="pwErr"></div>
+  </div>
+</div>
+
 
 <!-- ════ MODAL ════ -->
 <div class="ov" id="ovCfg">
@@ -219,6 +246,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     </nav>
     <div class="hdr-r">
       <div class="sync"><div class="dot" id="sdot"></div><span id="slbl">연결 중...</span></div>
+      <button class="bsm" onclick="changePw()">🔑 비번 변경</button>
       <button class="bsm" onclick="openOv()">⚙ 설정</button>
     </div>
   </div>
@@ -326,7 +354,8 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t3s"></table></div></div>
     <div class="sec">② 주차별 블록 랭킹 <span class="sec-b" id="t3wl"></span></div>
     <div class="tbar">
-      <button class="tb on" onclick="t3tb('gen',this)">🟢 일반 콘텐츠 블록</button>
+      <button class="tb on" onclick="t3tb('all',this)">📊 전체</button>
+      <button class="tb" onclick="t3tb('gen',this)">🟢 일반 콘텐츠 블록</button>
       <button class="tb" onclick="t3tb('race',this)">🔵 RACE 블록</button>
     </div>
     <div class="card" style="margin-bottom:12px">
@@ -366,7 +395,7 @@ let CFG = JSON.parse(JSON.stringify(DEFAULT_CFG));
 ═══════════════════════════════════════ */
 let HD=null,  hsi=0, htt='uv';
 let TDB=null, ti2=0, tt2='all';
-let CB=null,  ti3=0, tt3='gen';
+let CB=null,  ti3=0, tt3='all';
 const CH = {};
 
 /* ═══════════════════════════════════════
@@ -1147,27 +1176,58 @@ function t3tb(t,btn) { tt3=t; btn.closest('.tbar').querySelectorAll('.tb').forEa
 
 function rT3Rank() {
   const sw=CB.weeks[ti3], pw=ti3>0?CB.weeks[ti3-1]:null;
-  const curr=blkDA(tt3,sw), prev=pw?blkDA(tt3,pw):[];
+
+  // 전체 탭: gen + race 합쳐서 avgUV 기준 정렬
+  let curr, prev;
+  if(tt3==='all') {
+    const merge = (week) => {
+      const g = blkDA('gen', week);
+      const r = blkDA('race', week);
+      return [...g.map(x=>({...x,src:'gen'})), ...r.map(x=>({...x,src:'race'}))]
+               .sort((a,b)=>b.avgUV-a.avgUV);
+    };
+    curr = merge(sw);
+    prev = pw ? merge(pw) : [];
+  } else {
+    curr = blkDA(tt3, sw);
+    prev = pw ? blkDA(tt3, pw) : [];
+  }
+
   const pm={}; prev.forEach(p=>pm[p.block]=p);
-  const col=tt3==='race'?'#3B5BDB':'#059669';
+  const showType = tt3==='all';
+  const col = tt3==='race'?'#3B5BDB': tt3==='gen'?'#059669':'var(--t2)';
+  const cols = showType ? 9 : 8;
+
   let h=`<thead><tr>
     <th style="width:44px">Rank</th>
-    <th style="text-align:left;min-width:220px">블록명</th>
+    <th style="text-align:left;min-width:200px">블록명</th>
+    ${showType?'<th style="text-align:center">구분</th>':''}
     <th>일평균 UV</th><th>일평균 PV</th><th>총 매출</th>
     <th>UV WoW</th><th>PV WoW</th><th>매출 WoW</th>
   </tr></thead><tbody>`;
-  if(!curr.length) { h+=`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`; }
-  else curr.forEach((r,i)=>{
-    const p=pm[r.block]; const isN=!p;
-    h+=`<tr>
-      <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${i<3?'background:'+col:''}">${i+1}</span></td>
-      <td style="text-align:left">${r.block}</td>
-      <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${NC(r.totalRev)}</td>
-      <td>${isN?'<span class="ntag">NEW</span>':wCell(r.avgUV,p.avgUV)}</td>
-      <td>${isN?'<span class="ntag">NEW</span>':wCell(r.avgPV,p.avgPV)}</td>
-      <td>${isN?'<span class="ntag">NEW</span>':wCell(r.totalRev,p.totalRev)}</td>
-    </tr>`;
-  });
+
+  if(!curr.length) {
+    h+=`<tr><td colspan="${cols}" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`;
+  } else {
+    curr.forEach((r,i)=>{
+      const p=pm[r.block]; const isN=!p;
+      const uW=isN?'<span class="ntag">NEW</span>':wCell(r.avgUV,p.avgUV);
+      const pW=isN?'<span class="ntag">NEW</span>':wCell(r.avgPV,p.avgPV);
+      const rW=isN?'<span class="ntag">NEW</span>':wCell(r.totalRev,p.totalRev);
+      const rankCol = i<3 ? `background:${r.src==='race'?'#3B5BDB':'#059669'}` : '';
+      const typeCol = showType
+        ? `<td style="text-align:center;font-size:11px;font-weight:600;color:${r.src==='race'?'#3B5BDB':'#059669'}">${r.src==='race'?'RACE':'일반'}</td>`
+        : '';
+      h+=`<tr>
+        <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${rankCol}">${i+1}</span></td>
+        <td style="text-align:left">${r.block}</td>
+        ${typeCol}
+        <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${N(r.totalRev)}</td>
+        <td>${uW}</td><td>${pW}</td><td>${rW}</td>
+      </tr>`;
+    });
+  }
+
   if(document.getElementById('t3r')) document.getElementById('t3r').innerHTML = h+'</tbody>';
 }
 
@@ -1510,6 +1570,58 @@ function genP3Insight() {
   } catch(e){}
   await loadAll();
 })();
+
+/* ── 비밀번호 체크 ── */
+(function(){
+  const DEFAULT_PW = '1805';   // 초기 접속 비밀번호
+  const ADMIN_PW   = '6659';   // 관리자 비밀번호 (변경 권한)
+
+  function getCurrentPw(){
+    return localStorage.getItem('dashPw') || DEFAULT_PW;
+  }
+
+  function checkPw(){
+    const v = document.getElementById('pwInput').value;
+    if(v === getCurrentPw()){
+      sessionStorage.setItem('auth','ok');
+      document.getElementById('pwScreen').style.display='none';
+    } else {
+      const inp = document.getElementById('pwInput');
+      inp.classList.add('err');
+      document.getElementById('pwErr').textContent='비밀번호가 올바르지 않습니다.';
+      setTimeout(()=>inp.classList.remove('err'),400);
+      inp.value=''; inp.focus();
+    }
+  }
+  window.checkPw = checkPw;
+
+  // 비밀번호 변경 (관리자 전용)
+  window.changePw = function(){
+    const adminPw = prompt('관리자 비밀번호를 입력해주세요:');
+    if(adminPw !== ADMIN_PW){
+      alert('관리자 비밀번호가 올바르지 않습니다.');
+      return;
+    }
+    const newPw = prompt('새 비밀번호를 입력해주세요:');
+    if(!newPw || newPw.length < 4){
+      alert('비밀번호는 4자 이상이어야 합니다.');
+      return;
+    }
+    const confirm = prompt('새 비밀번호를 다시 입력해주세요:');
+    if(newPw !== confirm){
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    localStorage.setItem('dashPw', newPw);
+    alert('비밀번호가 변경되었습니다.\n다음 접속부터 새 비밀번호를 사용하세요.');
+  };
+
+  // 이미 인증됐으면 바로 통과
+  if(sessionStorage.getItem('auth')==='ok'){
+    document.getElementById('pwScreen').style.display='none';
+  }
+})();
+
 </script>
 </body>
 </html>
