@@ -453,12 +453,21 @@ function parseDate(v) {
 
 /* Google Sheets CSV fetch */
 const sheetURL = tab =>
-  `https://docs.google.com/spreadsheets/d/${CFG.sid}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+  `https://docs.google.com/spreadsheets/d/${CFG.sid}/export?format=csv&sheet=${encodeURIComponent(tab)}`;
 
 async function fetchTab(tab) {
-  const r = await fetch(sheetURL(tab));
-  if(!r.ok) throw new Error(`탭 로드 실패: "${tab}"`);
-  return r.text();
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 10000);
+  try {
+    const r = await fetch(sheetURL(tab), {signal: controller.signal});
+    clearTimeout(tid);
+    if(!r.ok) throw new Error(`탭 로드 실패: "${tab}" (HTTP ${r.status})`);
+    return r.text();
+  } catch(e) {
+    clearTimeout(tid);
+    if(e.name === 'AbortError') throw new Error(`타임아웃: "${tab}" — 구글 시트가 웹에 게시되어 있는지 확인해주세요`);
+    throw e;
+  }
 }
 
 /* CSV → 행 배열 (3행 헤더 스킵, 합계행/빈행 제거) */
@@ -551,9 +560,15 @@ async function loadAll() {
 
   } catch(e) {
     setSS('err', '연결 실패');
-    ['p1','p2','p3'].forEach(id => document.getElementById(`${id}-spin`).style.display='none');
+    ['p1','p2','p3'].forEach(id => {
+      const spin = document.getElementById(`${id}-spin`);
+      if(spin) spin.innerHTML = `<div style="color:#ff3b30;font-size:13px;text-align:center;padding:40px 20px;line-height:1.8">
+        ⚠️ 데이터 로드 실패<br><strong>${e.message}</strong><br><br>
+        구글 시트 → 파일 → 공유 → 웹에 게시 → CSV 형식으로 게시 후<br>
+        우측 상단 <strong>⚙ 설정</strong> 버튼에서 다시 연동하기를 눌러주세요.
+      </div>`;
+    });
     console.error(e);
-    alert(`데이터 로드 실패\n\n${e.message}\n\n구글 시트가 "웹에 게시" 되어 있는지 확인해주세요.\n(파일 → 공유 → 웹에 게시 → CSV 형식으로 게시)`);
   }
 }
 
@@ -990,6 +1005,7 @@ function rT2Rank() {
     <th>일평균 UV</th><th>일평균 PV</th><th>일평균 매출</th>
     <th>UV WoW</th><th>PV WoW</th>
   </tr></thead><tbody>`;
+  if(!curr.length) h+=`<tr><td colspan="${cols}" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`;
   else curr.forEach((r,i)=>{
     const p=pm[r.banner];
     const typeCol=showType?`<td style="color:${typeColor[r.type]||'var(--t2)'};font-weight:600;font-size:11px">${typeLabel[r.type]||r.type}</td>`:'';
