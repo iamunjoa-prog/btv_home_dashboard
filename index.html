@@ -281,16 +281,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   <div id="p1-body" style="display:none">
     <div class="wbar" id="wb1" style="position:sticky;top:52px;z-index:90"></div>
 
-    <!-- ① 이번 주 핵심 지표 인사이트 -->
-    <div class="ai-box" style="margin-bottom:12px">
-      <div class="ai-hdr">
-        <div class="ai-title">이번 주 핵심 지표</div>
-        <button class="ai-btn" onclick="genInsight('p1')">🔄</button>
-      </div>
-      <div id="insight-p1" class="ai-body" style="color:var(--t3)">로딩 중...</div>
-    </div>
-
-    <!-- ② 주간 실적 -->
+    <!-- ① 주간 실적 -->
     <div class="sec">주간 실적 <span class="sec-b">선택 주차 기준</span></div>
     <div class="card" style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -1025,13 +1016,13 @@ function rT2Rank() {
     <th>일평균 UV</th><th>일평균 PV</th><th>일평균 매출</th>
     <th>UV WoW</th><th>PV WoW</th>
   </tr></thead><tbody>`;
-  if(!curr.length) h+=`<tr><td colspan="${cols}" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`;
   else curr.forEach((r,i)=>{
     const p=pm[r.banner];
     const typeCol=showType?`<td style="color:${typeColor[r.type]||'var(--t2)'};font-weight:600;font-size:11px">${typeLabel[r.type]||r.type}</td>`:'';
+    const safeB = r.banner.replace(/'/g,"\\'");
     h+=`<tr>
       <td style="text-align:center"><span class="rb2${i<3?' t3':''}">${i+1}</span></td>
-      <td style="text-align:left"><span class="name-link" onclick="openDetailBanner(${JSON.stringify(r.banner)})">${r.banner}</span></td>
+      <td style="text-align:left"><span class="name-link" onclick="openDetailBanner('${safeB}')">${r.banner}</span></td>
       ${typeCol}
       <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${NC(r.avgRev)}</td>
       <td>${p?wCell(r.avgUV,p.avgUV):'<span class="ntag">NEW</span>'}</td>
@@ -1220,9 +1211,11 @@ function rT3Rank() {
       const typeCol = showType
         ? `<td style="text-align:center;font-size:11px;font-weight:600;color:${r.src==='race'?'#3B5BDB':'#059669'}">${r.src==='race'?'RACE':'일반'}</td>`
         : '';
+      const safeBlock = r.block.replace(/'/g,"\\'");
+      const safeSrc   = (r.src||tt3).replace(/'/g,"\\'");
       h+=`<tr>
         <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${rankCol}">${i+1}</span></td>
-        <td style="text-align:left"><span class="name-link" onclick="openDetailBlock(${JSON.stringify(r.block)},${JSON.stringify(r.src||tt3)})">${r.block}</span></td>
+        <td style="text-align:left"><span class="name-link" onclick="openDetailBlock('${safeBlock}','${safeSrc}')">${r.block}</span></td>
         ${typeCol}
         <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${N(r.totalRev)}</td>
         <td>${uW}</td><td>${pW}</td><td>${rW}</td>
@@ -1568,16 +1561,17 @@ let detailChartInst = null;
 let detailMetric = 'uv'; // 현재 선택 지표
 
 function openDetailBanner(bannerName) {
-  // 전 주차에 걸친 해당 배너 일평균 데이터 수집
-  const weeks = TDB.weeks;
-  const uvData  = weeks.map(w => { const r = bda(TDB.all, w, null).find(x=>x.banner===bannerName); return r ? r.avgUV  : null; });
-  const pvData  = weeks.map(w => { const r = bda(TDB.all, w, null).find(x=>x.banner===bannerName); return r ? r.avgPV  : null; });
-  const revData = weeks.map(w => { const r = bda(TDB.all, w, null).find(x=>x.banner===bannerName); return r ? r.avgRev : null; });
-
-  // 타입 감지
+  // 타입 먼저 감지
   const anyRow = TDB.all.find(d=>d.banner===bannerName);
-  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'}[anyRow?.type] || '';
-  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'}[anyRow?.type] || 'var(--t2)';
+  const bannerType = anyRow?.type || null;
+  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'}[bannerType] || '';
+  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'}[bannerType] || 'var(--t2)';
+
+  // 전 주차에 걸친 해당 배너 일평균 데이터 수집 (타입 고정 조회)
+  const weeks = TDB.weeks;
+  const uvData  = weeks.map(w => { const r = bda(TDB.all, w, bannerType).find(x=>x.banner===bannerName); return r ? r.avgUV  : null; });
+  const pvData  = weeks.map(w => { const r = bda(TDB.all, w, bannerType).find(x=>x.banner===bannerName); return r ? r.avgPV  : null; });
+  const revData = weeks.map(w => { const r = bda(TDB.all, w, bannerType).find(x=>x.banner===bannerName); return r ? r.avgRev : null; });
 
   // 최신 주차 KPI
   const latestIdx = uvData.reduce((acc,v,i)=>v!==null?i:acc, -1);
@@ -1589,48 +1583,52 @@ function openDetailBanner(bannerName) {
   document.getElementById('detailSub').innerHTML =
     `<span style="color:${typeColor};font-weight:600">${typeLabel}</span>　주차별 일평균 실적 추이`;
   document.getElementById('detailKpi').innerHTML = [
-    {l:'최근 일평균 UV', v: kpiUV!==null  ? FC(kpiUV)  : '-'},
-    {l:'최근 일평균 PV', v: kpiPV!==null  ? FC(kpiPV)  : '-'},
+    {l:'최근 일평균 UV',   v: kpiUV!==null  ? FC(kpiUV)  : '-'},
+    {l:'최근 일평균 PV',   v: kpiPV!==null  ? FC(kpiPV)  : '-'},
     {l:'최근 일평균 매출', v: kpiRev!==null ? NC(kpiRev) : '-'},
   ].map(k=>`<div class="detail-kpi"><div class="kl">${k.l}</div><div class="kv">${k.v}</div></div>`).join('');
 
-  detailMetric = 'uv';
+  document.getElementById('detailOv').classList.add('open');
   renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBannerChart(bannerName, weeks, uvData, pvData, revData, m));
   drawDetailBannerChart(bannerName, weeks, uvData, pvData, revData, 'uv');
-
-  document.getElementById('detailOv').classList.add('open');
 }
 
 function drawDetailBannerChart(name, weeks, uvData, pvData, revData, metric) {
-  const map = {uv:{d:uvData,c:'#0071e3',l:'일평균 UV'}, pv:{d:pvData,c:'#34c759',l:'일평균 PV'}, rev:{d:revData,c:'#ff9f0a',l:'일평균 매출'}};
-  const {d, c, l} = map[metric];
+  const map = {
+    uv:  {d:uvData,  c:'#0071e3', bg:'rgba(0,113,227,.1)',  l:'일평균 UV'},
+    pv:  {d:pvData,  c:'#34c759', bg:'rgba(52,199,89,.1)',  l:'일평균 PV'},
+    rev: {d:revData, c:'#ff9f0a', bg:'rgba(255,159,10,.1)', l:'일평균 매출'}
+  };
+  const {d, c, bg, l} = map[metric];
   const el = document.getElementById('detailChart');
   if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
-  detailChartInst = new Chart(el.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: weeks,
-      datasets: [{
-        label: l, data: d,
-        borderColor: c, backgroundColor: c.replace(')',', .1)').replace('rgb','rgba'),
-        fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
-        spanGaps: true
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      interaction: {mode:'index', intersect:false},
-      plugins: {
-        legend: {display:false},
-        tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
+  setTimeout(()=>{
+    detailChartInst = new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: weeks,
+        datasets: [{
+          label: l, data: d,
+          borderColor: c, backgroundColor: bg,
+          fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
+          spanGaps: true
+        }]
       },
-      scales: {
-        x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
-        y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
-            ticks:{font:{size:10},color:'#86868b', callback: v => metric==='rev'?FM(v):FC(v)}}
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        interaction: {mode:'index', intersect:false},
+        plugins: {
+          legend: {display:false},
+          tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
+        },
+        scales: {
+          x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
+          y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
+              ticks:{font:{size:10},color:'#86868b', callback: v => FM(v)}}
+        }
       }
-    }
-  });
+    });
+  }, 50);
 }
 
 function openDetailBlock(blockName, src) {
@@ -1658,48 +1656,49 @@ function openDetailBlock(blockName, src) {
     {l:'최근 총 매출',   v: kpiRev!==null ? NC(kpiRev) : '-'},
   ].map(k=>`<div class="detail-kpi"><div class="kl">${k.l}</div><div class="kv">${k.v}</div></div>`).join('');
 
-  detailMetric = 'uv';
+  document.getElementById('detailOv').classList.add('open');
   renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBlockChart(blockName, src, weeks, uvData, pvData, revData, m));
   drawDetailBlockChart(blockName, src, weeks, uvData, pvData, revData, 'uv');
-
-  document.getElementById('detailOv').classList.add('open');
 }
 
 function drawDetailBlockChart(name, src, weeks, uvData, pvData, revData, metric) {
   const typeColor = src==='race'?'#3B5BDB':'#059669';
+  const typeBg    = src==='race'?'rgba(59,91,219,.1)':'rgba(5,150,105,.1)';
   const map = {
-    uv:  {d:uvData,  c:typeColor,  l:'일평균 UV'},
-    pv:  {d:pvData,  c:'#34c759', l:'일평균 PV'},
-    rev: {d:revData, c:'#ff9f0a', l:'총 매출'}
+    uv:  {d:uvData,  c:typeColor, bg:typeBg,               l:'일평균 UV'},
+    pv:  {d:pvData,  c:'#34c759', bg:'rgba(52,199,89,.1)',  l:'일평균 PV'},
+    rev: {d:revData, c:'#ff9f0a', bg:'rgba(255,159,10,.1)', l:'총 매출'}
   };
-  const {d, c, l} = map[metric];
+  const {d, c, bg, l} = map[metric];
   const el = document.getElementById('detailChart');
   if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
-  detailChartInst = new Chart(el.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: weeks,
-      datasets: [{
-        label: l, data: d,
-        borderColor: c, backgroundColor: c+'22',
-        fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
-        spanGaps: true
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      interaction: {mode:'index', intersect:false},
-      plugins: {
-        legend: {display:false},
-        tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
+  setTimeout(()=>{
+    detailChartInst = new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: weeks,
+        datasets: [{
+          label: l, data: d,
+          borderColor: c, backgroundColor: bg,
+          fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
+          spanGaps: true
+        }]
       },
-      scales: {
-        x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
-        y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
-            ticks:{font:{size:10},color:'#86868b', callback: v => FM(v)}}
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        interaction: {mode:'index', intersect:false},
+        plugins: {
+          legend: {display:false},
+          tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
+        },
+        scales: {
+          x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
+          y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
+              ticks:{font:{size:10},color:'#86868b', callback: v => FM(v)}}
+        }
       }
-    }
-  });
+    });
+  }, 50);
 }
 
 function renderDetailTab(labels, metrics, onSelect) {
