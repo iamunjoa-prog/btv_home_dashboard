@@ -65,7 +65,7 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 .sec:first-child{margin-top:0}.sec-b{font-size:12px;font-weight:400;color:var(--t3)}
 
 /* Week bar */
-.wbar{background:var(--sf);border-radius:12px;box-shadow:var(--sh1);padding:5px;display:flex;gap:2px;flex-wrap:wrap;margin-bottom:18px;border:1px solid var(--bd)}
+.wbar{background:rgba(255,255,255,.95);backdrop-filter:saturate(180%) blur(12px);border-radius:12px;box-shadow:var(--sh1);padding:5px;display:flex;gap:2px;flex-wrap:wrap;margin-bottom:18px;border:1px solid var(--bd);position:sticky;top:52px;z-index:90}
 .wbtn{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--t2);transition:all .15s;white-space:nowrap;font-family:inherit}
 .wbtn:hover{background:var(--sf2)}.wbtn.on{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(0,113,227,.35)}
 
@@ -178,6 +178,27 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 }
 .chart-cap-btn:hover { background:var(--surface2); color:var(--t1); }
 
+.name-link{color:var(--blue);cursor:pointer;font-weight:600;text-decoration:none;border-bottom:1px dashed rgba(0,113,227,.35);transition:border-color .15s}
+.name-link:hover{border-bottom-color:var(--blue)}
+
+/* ── 상세 팝업 모달 ── */
+.detail-ov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.detail-ov.open{opacity:1;pointer-events:all}
+.detail-modal{background:var(--sf);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.28);padding:28px 28px 24px;width:720px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s}
+.detail-ov.open .detail-modal{transform:translateY(0)}
+.detail-modal-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}
+.detail-modal-title{font-size:16px;font-weight:700;letter-spacing:-.3px;line-height:1.4;flex:1}
+.detail-modal-sub{font-size:12px;color:var(--t3);margin-bottom:18px}
+.detail-close{width:28px;height:28px;border-radius:50%;border:none;background:var(--sf2);color:var(--t2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:background .15s}
+.detail-close:hover{background:var(--bd)}
+.detail-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.detail-kpi{background:var(--sf2);border-radius:12px;padding:12px 14px;border:1px solid var(--bd)}
+.detail-kpi .kl{font-size:10px}
+.detail-kpi .kv{font-size:18px}
+.detail-tab{display:flex;gap:2px;background:var(--sf2);border-radius:9px;padding:3px;width:fit-content;margin-bottom:14px}
+.detail-tb{padding:5px 14px;border-radius:7px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--t2);font-family:inherit;transition:all .15s}
+.detail-tb.on{background:var(--sf);color:var(--t1);box-shadow:var(--sh1)}
+
 /* ── 비밀번호 화면 ── */
 .pw-screen{position:fixed;inset:0;z-index:9999;background:#f5f5f7;display:flex;align-items:center;justify-content:center}
 .pw-box{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.12);padding:40px 36px;width:360px;max-width:calc(100vw - 32px);text-align:center}
@@ -258,23 +279,15 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p1" class="pg on">
   <div id="p1-spin" class="spinner-wrap"><div class="spinner"></div><span>홈 전체 이용 현황 불러오는 중...</span></div>
   <div id="p1-body" style="display:none">
-    <div class="wbar" id="wb1"></div>
+    <div class="wbar" id="wb1" style="position:sticky;top:52px;z-index:90"></div>
 
-    <!-- ① 홈 이용 UV 추이 + 인사이트 나란히 -->
-    <div class="p1-hero">
-      <div class="card chart-wrap">
-        <div class="cft">홈 이용 UV 추이</div>
-        <div class="cfd">전체 · 단순방문 · 단순방문 제외</div>
-        <canvas id="cUV" height="140"></canvas>
-        <button class="chart-cap-btn" onclick="captureChart('cUV','홈이용UV추이')">📷 저장</button>
+    <!-- ① 이번 주 핵심 지표 인사이트 -->
+    <div class="ai-box" style="margin-bottom:12px">
+      <div class="ai-hdr">
+        <div class="ai-title">이번 주 핵심 지표</div>
+        <button class="ai-btn" onclick="genInsight('p1')">🔄</button>
       </div>
-      <div class="ai-box" style="margin-bottom:0;height:100%">
-        <div class="ai-hdr">
-          <div class="ai-title">이번 주 핵심 지표</div>
-          <button class="ai-btn" onclick="genInsight('p1')">🔄</button>
-        </div>
-        <div id="insight-p1" class="ai-body" style="color:var(--t3)">로딩 중...</div>
-      </div>
+      <div id="insight-p1" class="ai-body" style="color:var(--t3)">로딩 중...</div>
     </div>
 
     <!-- ② 주간 실적 -->
@@ -287,18 +300,13 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <div class="tw"><table id="tbl1"></table></div>
     </div>
 
-    <!-- ③ 홈 이용 추이 -->
-    <div class="sec">홈 이용 추이</div>
-    <div class="cg2">
-      <div class="card chart-wrap"><div class="cft">UV 추이</div><div class="cfd">전체 · 단순방문 · 단순방문 제외</div><canvas id="cUV2" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cUV2','UV추이')">📷 저장</button></div>
-      <div class="card chart-wrap"><div class="cft">활용도 추이</div><div class="cfd">전체 UV 중 단순방문 제외 비율 (%)</div><canvas id="cEG" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cEG','홈활용도추이')">📷 저장</button></div>
-    </div>
-
-    <!-- ④ 블록별 현황 -->
-    <div class="sec">블록별 현황</div>
-    <div class="cg2">
-      <div class="card chart-wrap"><div class="cft">블록별 UV 추이</div><div class="cfd">단순방문 제외 내 블록별 (중복 포함)</div><canvas id="cBK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cBK','블록별UV추이')">📷 저장</button></div>
-      <div class="card chart-wrap"><div class="cft">블록별 점유율 추이</div><div class="cfd">단순방문 제외 UV 기준 · 커서 올리면 비율 확인</div><canvas id="cSK" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('cSK','블록별점유율추이')">📷 저장</button></div>
+    <!-- ③④ 홈 이용 추이 + 블록별 현황 — 4개 차트 2×2 그리드 -->
+    <div class="sec">홈 이용 추이 &amp; 블록별 현황</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card chart-wrap"><div class="cft">UV 추이</div><div class="cfd">전체 · 단순방문 · 홈 활성 고객</div><canvas id="cUV2" height="160"></canvas><button class="chart-cap-btn" onclick="captureChart('cUV2','UV추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">활용도 추이</div><div class="cfd">전체 UV 중 홈 활성 고객 비율 (%)</div><canvas id="cEG" height="160"></canvas><button class="chart-cap-btn" onclick="captureChart('cEG','홈활용도추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">블록별 UV 추이</div><div class="cfd">홈 활성 고객 내 블록별 (중복 포함)</div><canvas id="cBK" height="160"></canvas><button class="chart-cap-btn" onclick="captureChart('cBK','블록별UV추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">블록별 점유율 추이</div><div class="cfd">홈 활성 고객 UV 기준 · 커서 올리면 비율 확인</div><canvas id="cSK" height="160"></canvas><button class="chart-cap-btn" onclick="captureChart('cSK','블록별점유율추이')">📷 저장</button></div>
     </div>
   </div>
 </div>
@@ -307,17 +315,8 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p2" class="pg">
   <div id="p2-spin" class="spinner-wrap"><div class="spinner"></div><span>Today B tv 데이터 불러오는 중...</span></div>
   <div id="p2-body" style="display:none">
-    <div class="wbar" id="wb2"></div>
-    <div class="sec" style="justify-content:space-between">
-      <span>① 주간 실적 Summary</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="ai-btn" onclick="genInsight('p2')">🔄 인사이트 새로고침</button>
-        <button class="bsm" onclick="excelDown('t2s','TDB_주간Summary')">⬇ 엑셀</button>
-      </div>
-    </div>
-    <div class="sec-insight" id="insight-p2">로딩 중...</div>
-    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t2s"></table></div></div>
-    <div class="sec">② 선택 주차 배너 랭킹 <span class="sec-b" id="t2wl"></span></div>
+    <div class="wbar" id="wb2" style="position:sticky;top:52px;z-index:90"></div>
+    <div class="sec">① 선택 주차 배너 랭킹 <span class="sec-b" id="t2wl"></span></div>
     <div class="tbar">
       <button class="tb on" onclick="t2tb('all',this)">📊 전체</button>
       <button class="tb" onclick="t2tb('mass',this)">📌 Mass</button>
@@ -330,7 +329,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       </div>
       <div class="tw"><table id="t2r"></table></div>
     </div>
-    <div class="sec">③ 추이 차트</div>
+    <div class="sec">② 추이 차트</div>
     <div class="cg2">
       <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c2c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2c','운영수량추이')">📷 저장</button></div>
       <div class="card chart-wrap"><div class="cft">평균 UV 추이</div><canvas id="c2a" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2a','평균UV추이')">📷 저장</button></div>
@@ -342,17 +341,8 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p3" class="pg">
   <div id="p3-spin" class="spinner-wrap"><div class="spinner"></div><span>콘텐츠 블록 데이터 불러오는 중...</span></div>
   <div id="p3-body" style="display:none">
-    <div class="wbar" id="wb3"></div>
-    <div class="sec" style="justify-content:space-between">
-      <span>① 주간 실적 Summary</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="ai-btn" onclick="genInsight('p3')">🔄 인사이트 새로고침</button>
-        <button class="bsm" onclick="excelDown('t3s','블록_주간Summary')">⬇ 엑셀</button>
-      </div>
-    </div>
-    <div class="sec-insight" id="insight-p3">로딩 중...</div>
-    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t3s"></table></div></div>
-    <div class="sec">② 주차별 블록 랭킹 <span class="sec-b" id="t3wl"></span></div>
+    <div class="wbar" id="wb3" style="position:sticky;top:52px;z-index:90"></div>
+    <div class="sec">① 주차별 블록 랭킹 <span class="sec-b" id="t3wl"></span></div>
     <div class="tbar">
       <button class="tb on" onclick="t3tb('all',this)">📊 전체</button>
       <button class="tb" onclick="t3tb('gen',this)">🟢 일반 콘텐츠 블록</button>
@@ -364,11 +354,25 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       </div>
       <div class="tw"><table id="t3r"></table></div>
     </div>
-    <div class="sec">③ 추이 차트</div>
+    <div class="sec">② 추이 차트</div>
     <div class="cg2">
       <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c3c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3c','운영수량추이_블록')">📷 저장</button></div>
       <div class="card chart-wrap"><div class="cft">일평균 UV 추이</div><canvas id="c3u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3u','일평균UV추이')">📷 저장</button></div>
     </div>
+  </div>
+</div>
+
+<!-- ════ 배너/블록 상세 팝업 ════ -->
+<div class="detail-ov" id="detailOv" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-modal">
+    <div class="detail-modal-hdr">
+      <div class="detail-modal-title" id="detailTitle"></div>
+      <button class="detail-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="detail-modal-sub" id="detailSub"></div>
+    <div class="detail-kpi-row" id="detailKpi"></div>
+    <div class="detail-tab" id="detailTabBar"></div>
+    <div style="position:relative"><canvas id="detailChart" height="200"></canvas></div>
   </div>
 </div>
 
@@ -750,7 +754,7 @@ function rKG1() {
     {l:'홈 이용 UV',    v:HD.uv.total[i],     pv:p!==null?HD.uv.total[p]:null},
     {l:'홈 탐색 PV',    v:HD.pv.total[i],     pv:p!==null?HD.pv.total[p]:null},
     {l:'단순방문 UV',   v:HD.uv.simple[i],    pv:p!==null?HD.uv.simple[p]:null},
-    {l:'단순방문 제외', v:HD.uv.nonSimple[i], pv:p!==null?HD.uv.nonSimple[p]:null},
+    {l:'홈 활성 고객',  v:HD.uv.nonSimple[i], pv:p!==null?HD.uv.nonSimple[p]:null},
   ].map(c=>`<div class="kc">
     <div class="kl">${c.l}</div>
     <div class="kv">${FM(c.v)}</div>
@@ -824,8 +828,6 @@ function rCharts1() {
     {label:'단순방문',data:HD.uv.simple,borderColor:'#86868b',backgroundColor:'transparent',tension:.4,pointRadius:2,borderWidth:1.5,borderDash:[4,3]},
     {label:'단순방문 제외',data:HD.uv.nonSimple,borderColor:'#34c759',backgroundColor:'rgba(52,199,89,.07)',fill:true,tension:.4,pointRadius:3,borderWidth:2},
   ];
-  // ① 상단 요약 차트 (높이 줄임 — height 속성은 HTML에서 처리)
-  mkL('cUV', uvDs, null, HD.weeks);
   // ③ 홈 이용 추이 섹션 — UV
   mkL('cUV2', uvDs, null, HD.weeks);
   // ③ 활용도 추이
@@ -855,7 +857,7 @@ function h1T(t,btn){htt=t;btn.closest('.tbar').querySelectorAll('.tb').forEach(b
 function rTbl1() {
   const d=htt==='uv'?HD.uv:HD.pv, l=htt==='uv'?'UV':'PV';
   const rows=[
-    {k:`홈 이용 (${l})`,d:d.total,c:'rh'},{k:'단순방문',d:d.simple,c:'rs'},{k:'단순방문 제외',d:d.nonSimple,c:'rs'},
+    {k:`홈 이용 (${l})`,d:d.total,c:'rh'},{k:'홈 활성 고객',d:d.nonSimple,c:'rs'},
     {k:'Today B tv',d:d.todayBtv,c:'rb'},{k:'오늘 핫한 콘텐츠',d:d.hotContent,c:'rb'},
     {k:'콘텐츠 블록/배너',d:d.blockBnr,c:'rb'},{k:'RACE/랭킹',d:d.race,c:'rb'}
   ];
@@ -1029,7 +1031,7 @@ function rT2Rank() {
     const typeCol=showType?`<td style="color:${typeColor[r.type]||'var(--t2)'};font-weight:600;font-size:11px">${typeLabel[r.type]||r.type}</td>`:'';
     h+=`<tr>
       <td style="text-align:center"><span class="rb2${i<3?' t3':''}">${i+1}</span></td>
-      <td style="text-align:left">${r.banner}</td>
+      <td style="text-align:left"><span class="name-link" onclick="openDetailBanner(${JSON.stringify(r.banner)})">${r.banner}</span></td>
       ${typeCol}
       <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${NC(r.avgRev)}</td>
       <td>${p?wCell(r.avgUV,p.avgUV):'<span class="ntag">NEW</span>'}</td>
@@ -1220,7 +1222,7 @@ function rT3Rank() {
         : '';
       h+=`<tr>
         <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${rankCol}">${i+1}</span></td>
-        <td style="text-align:left">${r.block}</td>
+        <td style="text-align:left"><span class="name-link" onclick="openDetailBlock(${JSON.stringify(r.block)},${JSON.stringify(r.src||tt3)})">${r.block}</span></td>
         ${typeCol}
         <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${N(r.totalRev)}</td>
         <td>${uW}</td><td>${pW}</td><td>${rW}</td>
@@ -1507,7 +1509,7 @@ function genP1Insight() {
   el.innerHTML=[
     `📅 <strong>${wk}</strong> 홈 이용 현황 요약`,``,
     `• 홈 이용 UV <strong>${FM(uv)}</strong> ${wowTxt(wowV(uv,uvP))}`,
-    `• 단순방문 제외 UV <strong>${FM(ns)}</strong> ${wowTxt(wowV(ns,nsP))}`,
+    `• 홈 활성 고객 UV <strong>${FM(ns)}</strong> ${wowTxt(wowV(ns,nsP))}`,
     `• 홈 탐색 PV <strong>${FM(pv)}</strong> ${wowTxt(wowV(pv,pvP))}`,``,
     `• 홈 활용도 <strong>${eng}%</strong>${engW!==null?` (전주 ${engP}% → ${eng}%, ${wowTxt(engW,'%p')})` : ''}`,
     `• 고객당 PV <strong>${ppu}회</strong> ${wowTxt(wowV(parseFloat(ppu),parseFloat(ppuP||0)))}`,``,
@@ -1558,6 +1560,166 @@ function genP3Insight() {
   ].join('<br>');
 }
 
+
+/* ═══════════════════════════════════════
+   배너 / 블록 상세 팝업
+═══════════════════════════════════════ */
+let detailChartInst = null;
+let detailMetric = 'uv'; // 현재 선택 지표
+
+function openDetailBanner(bannerName) {
+  // 전 주차에 걸친 해당 배너 일평균 데이터 수집
+  const weeks = TDB.weeks;
+  const uvData  = weeks.map(w => { const r = bda(TDB.all, w, null).find(x=>x.banner===bannerName); return r ? r.avgUV  : null; });
+  const pvData  = weeks.map(w => { const r = bda(TDB.all, w, null).find(x=>x.banner===bannerName); return r ? r.avgPV  : null; });
+  const revData = weeks.map(w => { const r = bda(TDB.all, w, null).find(x=>x.banner===bannerName); return r ? r.avgRev : null; });
+
+  // 타입 감지
+  const anyRow = TDB.all.find(d=>d.banner===bannerName);
+  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'}[anyRow?.type] || '';
+  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'}[anyRow?.type] || 'var(--t2)';
+
+  // 최신 주차 KPI
+  const latestIdx = uvData.reduce((acc,v,i)=>v!==null?i:acc, -1);
+  const kpiUV  = latestIdx>=0 ? uvData[latestIdx]  : null;
+  const kpiPV  = latestIdx>=0 ? pvData[latestIdx]  : null;
+  const kpiRev = latestIdx>=0 ? revData[latestIdx] : null;
+
+  document.getElementById('detailTitle').textContent = bannerName;
+  document.getElementById('detailSub').innerHTML =
+    `<span style="color:${typeColor};font-weight:600">${typeLabel}</span>　주차별 일평균 실적 추이`;
+  document.getElementById('detailKpi').innerHTML = [
+    {l:'최근 일평균 UV', v: kpiUV!==null  ? FC(kpiUV)  : '-'},
+    {l:'최근 일평균 PV', v: kpiPV!==null  ? FC(kpiPV)  : '-'},
+    {l:'최근 일평균 매출', v: kpiRev!==null ? NC(kpiRev) : '-'},
+  ].map(k=>`<div class="detail-kpi"><div class="kl">${k.l}</div><div class="kv">${k.v}</div></div>`).join('');
+
+  detailMetric = 'uv';
+  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBannerChart(bannerName, weeks, uvData, pvData, revData, m));
+  drawDetailBannerChart(bannerName, weeks, uvData, pvData, revData, 'uv');
+
+  document.getElementById('detailOv').classList.add('open');
+}
+
+function drawDetailBannerChart(name, weeks, uvData, pvData, revData, metric) {
+  const map = {uv:{d:uvData,c:'#0071e3',l:'일평균 UV'}, pv:{d:pvData,c:'#34c759',l:'일평균 PV'}, rev:{d:revData,c:'#ff9f0a',l:'일평균 매출'}};
+  const {d, c, l} = map[metric];
+  const el = document.getElementById('detailChart');
+  if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
+  detailChartInst = new Chart(el.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: weeks,
+      datasets: [{
+        label: l, data: d,
+        borderColor: c, backgroundColor: c.replace(')',', .1)').replace('rgb','rgba'),
+        fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
+        spanGaps: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: {mode:'index', intersect:false},
+      plugins: {
+        legend: {display:false},
+        tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
+      },
+      scales: {
+        x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
+        y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
+            ticks:{font:{size:10},color:'#86868b', callback: v => metric==='rev'?FM(v):FC(v)}}
+      }
+    }
+  });
+}
+
+function openDetailBlock(blockName, src) {
+  const srcData = src==='race' ? CB.race : CB.gen;
+  const weeks = CB.weeks;
+
+  const uvData  = weeks.map(w => { const r = blkDA(src, w).find(x=>x.block===blockName); return r ? r.avgUV    : null; });
+  const pvData  = weeks.map(w => { const r = blkDA(src, w).find(x=>x.block===blockName); return r ? r.avgPV    : null; });
+  const revData = weeks.map(w => { const r = blkDA(src, w).find(x=>x.block===blockName); return r ? r.totalRev : null; });
+
+  const typeLabel = src==='race' ? 'RACE' : '일반';
+  const typeColor = src==='race' ? '#3B5BDB' : '#059669';
+
+  const latestIdx = uvData.reduce((acc,v,i)=>v!==null?i:acc, -1);
+  const kpiUV  = latestIdx>=0 ? uvData[latestIdx]  : null;
+  const kpiPV  = latestIdx>=0 ? pvData[latestIdx]  : null;
+  const kpiRev = latestIdx>=0 ? revData[latestIdx] : null;
+
+  document.getElementById('detailTitle').textContent = blockName;
+  document.getElementById('detailSub').innerHTML =
+    `<span style="color:${typeColor};font-weight:600">${typeLabel}</span>　주차별 실적 추이`;
+  document.getElementById('detailKpi').innerHTML = [
+    {l:'최근 일평균 UV', v: kpiUV!==null  ? FC(kpiUV)  : '-'},
+    {l:'최근 일평균 PV', v: kpiPV!==null  ? FC(kpiPV)  : '-'},
+    {l:'최근 총 매출',   v: kpiRev!==null ? NC(kpiRev) : '-'},
+  ].map(k=>`<div class="detail-kpi"><div class="kl">${k.l}</div><div class="kv">${k.v}</div></div>`).join('');
+
+  detailMetric = 'uv';
+  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBlockChart(blockName, src, weeks, uvData, pvData, revData, m));
+  drawDetailBlockChart(blockName, src, weeks, uvData, pvData, revData, 'uv');
+
+  document.getElementById('detailOv').classList.add('open');
+}
+
+function drawDetailBlockChart(name, src, weeks, uvData, pvData, revData, metric) {
+  const typeColor = src==='race'?'#3B5BDB':'#059669';
+  const map = {
+    uv:  {d:uvData,  c:typeColor,  l:'일평균 UV'},
+    pv:  {d:pvData,  c:'#34c759', l:'일평균 PV'},
+    rev: {d:revData, c:'#ff9f0a', l:'총 매출'}
+  };
+  const {d, c, l} = map[metric];
+  const el = document.getElementById('detailChart');
+  if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
+  detailChartInst = new Chart(el.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: weeks,
+      datasets: [{
+        label: l, data: d,
+        borderColor: c, backgroundColor: c+'22',
+        fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
+        spanGaps: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: {mode:'index', intersect:false},
+      plugins: {
+        legend: {display:false},
+        tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
+      },
+      scales: {
+        x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
+        y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
+            ticks:{font:{size:10},color:'#86868b', callback: v => FM(v)}}
+      }
+    }
+  });
+}
+
+function renderDetailTab(labels, metrics, onSelect) {
+  const bar = document.getElementById('detailTabBar');
+  bar.innerHTML = labels.map((l,i)=>
+    `<button class="detail-tb${i===0?' on':''}" onclick="selectDetailTab(this,'${metrics[i]}',detailSelectCb)">${l}</button>`
+  ).join('');
+  window.detailSelectCb = onSelect;
+}
+
+function selectDetailTab(btn, metric, cb) {
+  btn.closest('.detail-tab').querySelectorAll('.detail-tb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  cb(metric);
+}
+
+function closeDetail() {
+  document.getElementById('detailOv').classList.remove('open');
+  if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
+}
 
 /* ═══════════════════════════════════════
    INIT — 페이지 열리면 자동 연결
