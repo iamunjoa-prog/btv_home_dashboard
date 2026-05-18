@@ -199,34 +199,9 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 .detail-tb{padding:5px 14px;border-radius:7px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--t2);font-family:inherit;transition:all .15s}
 .detail-tb.on{background:var(--sf);color:var(--t1);box-shadow:var(--sh1)}
 
-/* ── 비밀번호 화면 ── */
-.pw-screen{position:fixed;inset:0;z-index:9999;background:#f5f5f7;display:flex;align-items:center;justify-content:center}
-.pw-box{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.12);padding:40px 36px;width:360px;max-width:calc(100vw - 32px);text-align:center}
-.pw-logo{font-size:15px;font-weight:700;margin-bottom:28px;color:#1d1d1f}.pw-logo span{color:#0071e3}
-.pw-title{font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:6px}
-.pw-sub{font-size:13px;color:#86868b;margin-bottom:24px}
-.pw-input{width:100%;padding:12px 16px;border:1px solid rgba(0,0,0,.12);border-radius:12px;font-size:16px;font-family:inherit;text-align:center;letter-spacing:4px;outline:none;transition:border-color .15s;background:#f5f5f7}
-.pw-input:focus{border-color:#0071e3;background:#fff}
-.pw-input.err{border-color:#ff3b30;animation:shake .3s}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-.pw-btn{width:100%;padding:13px;border-radius:12px;border:none;background:#0071e3;color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:12px;transition:opacity .15s}
-.pw-btn:hover{opacity:.88}
-.pw-err{font-size:13px;color:#ff3b30;margin-top:10px;min-height:18px}
 </style>
 </head>
 <body>
-<!-- 비밀번호 화면 -->
-<div class="pw-screen" id="pwScreen">
-  <div class="pw-box">
-    <div class="pw-logo">홈 이용 <span>Dashboard</span></div>
-    <div class="pw-title">🔒 접근 제한</div>
-    <div class="pw-sub">비밀번호를 입력해주세요</div>
-    <input class="pw-input" id="pwInput" type="password" placeholder="••••" maxlength="20"
-      onkeydown="if(event.key==='Enter')checkPw()">
-    <button class="pw-btn" onclick="checkPw()">확인</button>
-    <div class="pw-err" id="pwErr"></div>
-  </div>
-</div>
 
 
 <!-- ════ MODAL ════ -->
@@ -267,7 +242,6 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     </nav>
     <div class="hdr-r">
       <div class="sync"><div class="dot" id="sdot"></div><span id="slbl">연결 중...</span></div>
-      <button class="bsm" onclick="changePw()">🔑 비번 변경</button>
       <button class="bsm" onclick="openOv()">⚙ 설정</button>
     </div>
   </div>
@@ -370,38 +344,6 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <footer>홈 이용 지표 통합 대시보드 · Sheet ID: 1Btbb6dM9jPTR5B_Ryq2US8v0yoPnjrLpB6ImH6DVCRU · GitHub Pages 배포용</footer>
 
 <script>
-/* ── 비밀번호 체크 (최우선 실행) ── */
-const _PW_DEFAULT = '1805';
-const _PW_ADMIN   = '6659';
-function _getPw()  { try { return localStorage.getItem('dashPw') || _PW_DEFAULT; } catch(e) { return _PW_DEFAULT; } }
-function _isAuth() { try { return sessionStorage.getItem('auth') === 'ok'; } catch(e) { return false; } }
-function _setAuth(){ try { sessionStorage.setItem('auth','ok'); } catch(e) {} }
-
-function checkPw() {
-  const inp = document.getElementById('pwInput');
-  if(inp.value === _getPw()) {
-    _setAuth();
-    document.getElementById('pwScreen').style.display = 'none';
-  } else {
-    inp.classList.add('err');
-    document.getElementById('pwErr').textContent = '비밀번호가 올바르지 않습니다.';
-    setTimeout(() => inp.classList.remove('err'), 400);
-    inp.value = ''; inp.focus();
-  }
-}
-function changePw() {
-  const adminPw = prompt('관리자 비밀번호를 입력해주세요:');
-  if(adminPw !== _PW_ADMIN) { alert('관리자 비밀번호가 올바르지 않습니다.'); return; }
-  const newPw = prompt('새 비밀번호를 입력해주세요:');
-  if(!newPw || newPw.length < 4) { alert('비밀번호는 4자 이상이어야 합니다.'); return; }
-  const conf = prompt('새 비밀번호를 다시 입력해주세요:');
-  if(newPw !== conf) { alert('비밀번호가 일치하지 않습니다.'); return; }
-  try { localStorage.setItem('dashPw', newPw); } catch(e) {}
-  alert('비밀번호가 변경되었습니다.\n다음 접속부터 새 비밀번호를 사용하세요.');
-}
-// 이미 인증됐으면 바로 통과
-if(_isAuth()) document.getElementById('pwScreen').style.display = 'none';
-
 /* ═══════════════════════════════════════
    CONFIG — 탭 이름만 여기서 관리
 ═══════════════════════════════════════ */
