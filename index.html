@@ -281,7 +281,14 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   <div id="p2-spin" class="spinner-wrap"><div class="spinner"></div><span>Today B tv 데이터 불러오는 중...</span></div>
   <div id="p2-body" style="display:none">
     <div class="wbar" id="wb2" style="position:sticky;top:52px;z-index:90"></div>
-    <div class="sec">① 선택 주차 배너 랭킹 <span class="sec-b" id="t2wl"></span></div>
+    <div class="sec" style="justify-content:space-between">
+      <span>① 주간 실적 Summary</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="bsm" onclick="excelDown('t2s','TDB_주간Summary')">⬇ 엑셀</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t2s"></table></div></div>
+    <div class="sec">② 선택 주차 배너 랭킹 <span class="sec-b" id="t2wl"></span></div>
     <div class="tbar">
       <button class="tb on" onclick="t2tb('all',this)">📊 전체</button>
       <button class="tb" onclick="t2tb('mass',this)">📌 Mass</button>
@@ -294,7 +301,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       </div>
       <div class="tw"><table id="t2r"></table></div>
     </div>
-    <div class="sec">② 추이 차트</div>
+    <div class="sec">③ 추이 차트</div>
     <div class="cg2">
       <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c2c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2c','운영수량추이')">📷 저장</button></div>
       <div class="card chart-wrap"><div class="cft">평균 UV 추이</div><canvas id="c2a" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2a','평균UV추이')">📷 저장</button></div>
@@ -307,7 +314,14 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   <div id="p3-spin" class="spinner-wrap"><div class="spinner"></div><span>콘텐츠 블록 데이터 불러오는 중...</span></div>
   <div id="p3-body" style="display:none">
     <div class="wbar" id="wb3" style="position:sticky;top:52px;z-index:90"></div>
-    <div class="sec">① 주차별 블록 랭킹 <span class="sec-b" id="t3wl"></span></div>
+    <div class="sec" style="justify-content:space-between">
+      <span>① 주간 실적 Summary</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="bsm" onclick="excelDown('t3s','블록_주간Summary')">⬇ 엑셀</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t3s"></table></div></div>
+    <div class="sec">② 주차별 블록 랭킹 <span class="sec-b" id="t3wl"></span></div>
     <div class="tbar">
       <button class="tb on" onclick="t3tb('all',this)">📊 전체</button>
       <button class="tb" onclick="t3tb('gen',this)">🟢 일반 콘텐츠 블록</button>
@@ -319,7 +333,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       </div>
       <div class="tw"><table id="t3r"></table></div>
     </div>
-    <div class="sec">② 추이 차트</div>
+    <div class="sec">③ 추이 차트</div>
     <div class="cg2">
       <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c3c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3c','운영수량추이_블록')">📷 저장</button></div>
       <div class="card chart-wrap"><div class="cft">일평균 UV 추이</div><canvas id="c3u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3u','일평균UV추이')">📷 저장</button></div>
@@ -453,7 +467,7 @@ function parseDate(v) {
 
 /* Google Sheets CSV fetch */
 const sheetURL = tab =>
-  `https://docs.google.com/spreadsheets/d/${CFG.sid}/export?format=csv&sheet=${encodeURIComponent(tab)}`;
+  `https://docs.google.com/spreadsheets/d/${CFG.sid}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
 
 async function fetchTab(tab) {
   const controller = new AbortController();
