@@ -1733,55 +1733,48 @@ function closeDetail() {
 })();
 
 /* ── 비밀번호 체크 ── */
-(function(){
-  const DEFAULT_PW = '1805';   // 초기 접속 비밀번호
-  const ADMIN_PW   = '6659';   // 관리자 비밀번호 (변경 권한)
+const _PW_DEFAULT = '1805';
+const _PW_ADMIN   = '6659';
 
-  function getCurrentPw(){
-    return localStorage.getItem('dashPw') || DEFAULT_PW;
+function _getPw() {
+  try { return localStorage.getItem('dashPw') || _PW_DEFAULT; } catch(e) { return _PW_DEFAULT; }
+}
+function _isAuth() {
+  try { return sessionStorage.getItem('auth') === 'ok'; } catch(e) { return false; }
+}
+function _setAuth() {
+  try { sessionStorage.setItem('auth','ok'); } catch(e) {}
+}
+
+function checkPw() {
+  const inp = document.getElementById('pwInput');
+  const v = inp.value;
+  if(v === _getPw()) {
+    _setAuth();
+    document.getElementById('pwScreen').style.display = 'none';
+  } else {
+    inp.classList.add('err');
+    document.getElementById('pwErr').textContent = '비밀번호가 올바르지 않습니다.';
+    setTimeout(() => inp.classList.remove('err'), 400);
+    inp.value = ''; inp.focus();
   }
+}
 
-  function checkPw(){
-    const v = document.getElementById('pwInput').value;
-    if(v === getCurrentPw()){
-      sessionStorage.setItem('auth','ok');
-      document.getElementById('pwScreen').style.display='none';
-    } else {
-      const inp = document.getElementById('pwInput');
-      inp.classList.add('err');
-      document.getElementById('pwErr').textContent='비밀번호가 올바르지 않습니다.';
-      setTimeout(()=>inp.classList.remove('err'),400);
-      inp.value=''; inp.focus();
-    }
-  }
-  window.checkPw = checkPw;
+function changePw() {
+  const adminPw = prompt('관리자 비밀번호를 입력해주세요:');
+  if(adminPw !== _PW_ADMIN) { alert('관리자 비밀번호가 올바르지 않습니다.'); return; }
+  const newPw = prompt('새 비밀번호를 입력해주세요:');
+  if(!newPw || newPw.length < 4) { alert('비밀번호는 4자 이상이어야 합니다.'); return; }
+  const confirm = prompt('새 비밀번호를 다시 입력해주세요:');
+  if(newPw !== confirm) { alert('비밀번호가 일치하지 않습니다.'); return; }
+  try { localStorage.setItem('dashPw', newPw); } catch(e) {}
+  alert('비밀번호가 변경되었습니다.\n다음 접속부터 새 비밀번호를 사용하세요.');
+}
 
-  // 비밀번호 변경 (관리자 전용)
-  window.changePw = function(){
-    const adminPw = prompt('관리자 비밀번호를 입력해주세요:');
-    if(adminPw !== ADMIN_PW){
-      alert('관리자 비밀번호가 올바르지 않습니다.');
-      return;
-    }
-    const newPw = prompt('새 비밀번호를 입력해주세요:');
-    if(!newPw || newPw.length < 4){
-      alert('비밀번호는 4자 이상이어야 합니다.');
-      return;
-    }
-    const confirm = prompt('새 비밀번호를 다시 입력해주세요:');
-    if(newPw !== confirm){
-      alert('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    localStorage.setItem('dashPw', newPw);
-    alert('비밀번호가 변경되었습니다.\n다음 접속부터 새 비밀번호를 사용하세요.');
-  };
-
-  // 이미 인증됐으면 바로 통과
-  if(sessionStorage.getItem('auth')==='ok'){
-    document.getElementById('pwScreen').style.display='none';
-  }
-})();
+// 이미 인증됐으면 바로 통과
+if(_isAuth()) {
+  document.getElementById('pwScreen').style.display = 'none';
+}
 
 </script>
 </body>
