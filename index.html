@@ -353,6 +353,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
         <button class="bsm" onclick="excelDown('t2r','TDB_배너랭킹')">⬇ 엑셀 다운로드</button>
       </div>
       <div class="tw"><table id="t2r"></table></div>
+      <div id="t2r-note" style="display:none"></div>
     </div>
     <div class="sec">③ 추이 차트</div>
     <div class="cg2">
@@ -1171,29 +1172,69 @@ function rT2Sum() {
   if(document.getElementById('t2s')) document.getElementById('t2s').innerHTML = h+'</tbody>';
 }
 
+/* 배너명에서 모수 파싱 (타겟/250만, 타겟/0.5천 등) */
+function parseTargetSize(bannerName) {
+  const m = bannerName.match(/타겟\/([0-9.]+)(만|천)?/);
+  if(!m) return null;
+  const num = parseFloat(m[1]);
+  if(m[2] === '만') return Math.round(num * 10000);
+  if(m[2] === '천') return Math.round(num * 1000);
+  return Math.round(num);
+}
+
 function t2tb(t,btn) { tt2=t; btn.closest('.tbar').querySelectorAll('.tb').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); rT2Rank(); }
 
 function rT2Rank() {
   const sw=TDB.weeks[ti2], pw=ti2>0?TDB.weeks[ti2-1]:null;
   const typeFilter = tt2==='all' ? null : tt2;
-  const curr=bda(TDB.all,sw,typeFilter), prev=pw?bda(TDB.all,pw,typeFilter):[];
+  const isTarget = tt2==='target';
+
+  // Target 탭: UV 합계도 계산
+  const curr = bda(TDB.all,sw,typeFilter);
+  const prev  = pw ? bda(TDB.all,pw,typeFilter) : [];
+
+  // 선택 주차 UV 합계 (반응률용)
+  const totalUvMap = {};
+  if(isTarget) {
+    TDB.all.filter(d=>d.week===sw&&d.type==='target').forEach(d=>{
+      totalUvMap[d.banner] = (totalUvMap[d.banner]||0) + d.uv;
+    });
+  }
+
   const pm={}; prev.forEach(p=>pm[p.banner]=p);
   const showType = tt2==='all';
   const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'};
   const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'};
-  const cols = showType ? 8 : 7;
+  const cols = showType ? 8 : isTarget ? 8 : 7;
+
   let h=`<thead><tr>
     <th style="width:44px">Rank</th>
     <th style="text-align:left;min-width:240px">배너명</th>
     ${showType?'<th>타입</th>':''}
     <th>일평균 UV</th><th>일평균 PV</th><th>일평균 매출</th>
     <th>UV WoW</th><th>PV WoW</th>
+    ${isTarget?'<th style="color:#E24B4A">타겟 반응률</th>':''}
   </tr></thead><tbody>`;
+
   if(!curr.length) h+=`<tr><td colspan="${cols}" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`;
   else curr.forEach((r,i)=>{
     const p=pm[r.banner];
     const typeCol=showType?`<td style="color:${typeColor[r.type]||'var(--t2)'};font-weight:600;font-size:11px">${typeLabel[r.type]||r.type}</td>`:'';
     const safeB = r.banner.replace(/'/g,"\\'");
+
+    // 타겟 반응률 계산
+    let rateCol = '';
+    if(isTarget) {
+      const size = parseTargetSize(r.banner);
+      const totalUV = totalUvMap[r.banner] || 0;
+      if(size && size > 0 && totalUV > 0) {
+        const rate = (totalUV / size * 100).toFixed(2);
+        rateCol = `<td style="text-align:right;font-weight:600;color:#E24B4A">${rate}%</td>`;
+      } else {
+        rateCol = `<td style="text-align:right;color:var(--t3)">-</td>`;
+      }
+    }
+
     h+=`<tr>
       <td style="text-align:center"><span class="rb2${i<3?' t3':''}">${i+1}</span></td>
       <td style="text-align:left"><span class="name-link" onclick="openDetailBanner('${safeB}')">${r.banner}</span></td>
@@ -1201,9 +1242,22 @@ function rT2Rank() {
       <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${NC(r.avgRev)}</td>
       <td>${p?wCell(r.avgUV,p.avgUV):'<span class="ntag">NEW</span>'}</td>
       <td>${p?wCell(r.avgPV,p.avgPV):'<span class="ntag">NEW</span>'}</td>
+      ${rateCol}
     </tr>`;
   });
+
   if(document.getElementById('t2r')) document.getElementById('t2r').innerHTML=h+'</tbody>';
+
+  // Target 탭 안내 문구
+  const note = document.getElementById('t2r-note');
+  if(note) {
+    note.style.display = isTarget ? '' : 'none';
+    note.innerHTML = isTarget ? `
+      <div style="font-size:12px;color:var(--t3);padding:10px 4px;line-height:1.8">
+        💡 <strong>타겟 반응률</strong> = 선택 주차 UV 합계 ÷ 배너명 내 모수 (타겟/N만·N천 형식 자동 파싱)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;모수가 배너명에 없거나 파싱 불가한 경우 <strong>-</strong> 로 표시됩니다.
+      </div>` : '';
+  }
 }
 
 function rT2Ch() {
