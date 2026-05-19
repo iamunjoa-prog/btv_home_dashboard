@@ -526,22 +526,20 @@ function classifyBanner(blockName) {
   return null;
 }
 
-/* 블록명 → 분류 key 반환 */
+/* 블록명 → 분류 key 반환
+   inc 있는 규칙 → 순서대로 매칭
+   inc 없는 규칙 → 나머지 전부 (기본값, 순서 무관) */
 function classifyBlock(blockName) {
   const name = blockName || '';
-  // 1pass: include 있는 규칙들 먼저 매칭
   for(const rule of CB_RULES) {
     const inc = rule.include || [];
     const exc = rule.exclude || [];
-    if(inc.length === 0) continue; // 기본값 규칙은 스킵
+    if(inc.length === 0) continue;
     if(exc.some(k => name.includes(k))) continue;
     if(inc.some(k => name.includes(k))) return rule.key;
   }
-  // 2pass: include 없는 규칙(기본값)으로 폴백
-  for(const rule of CB_RULES) {
-    if((rule.include || []).length === 0) return rule.key;
-  }
-  return CB_RULES[CB_RULES.length - 1]?.key || 'gen';
+  const fallback = CB_RULES.find(r => (r.include||[]).length === 0);
+  return fallback ? fallback.key : CB_RULES[CB_RULES.length-1].key;
 }
 
 /* ═══════════════════════════════════════
