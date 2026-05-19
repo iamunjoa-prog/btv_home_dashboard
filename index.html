@@ -65,7 +65,7 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 .sec:first-child{margin-top:0}.sec-b{font-size:12px;font-weight:400;color:var(--t3)}
 
 /* Week bar */
-.wbar{background:rgba(255,255,255,.95);backdrop-filter:saturate(180%) blur(12px);border-radius:12px;box-shadow:var(--sh1);padding:5px;display:flex;gap:2px;flex-wrap:wrap;margin-bottom:18px;border:1px solid var(--bd);position:sticky;top:52px;z-index:90}
+.wbar{background:rgba(255,255,255,.95);backdrop-filter:saturate(180%) blur(12px);border-radius:12px;box-shadow:var(--sh1);padding:5px;display:flex;gap:2px;flex-wrap:wrap;margin-bottom:18px;border:1px solid var(--bd);position:sticky;top:60px;z-index:90}
 .wbtn{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--t2);transition:all .15s;white-space:nowrap;font-family:inherit}
 .wbtn:hover{background:var(--sf2)}.wbtn.on{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(0,113,227,.35)}
 
@@ -306,7 +306,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p1" class="pg on">
   <div id="p1-spin" class="spinner-wrap"><div class="spinner"></div><span>홈 전체 이용 현황 불러오는 중...</span></div>
   <div id="p1-body" style="display:none">
-    <div class="wbar" id="wb1" style="position:sticky;top:52px;z-index:90"></div>
+    <div class="wbar" id="wb1" style="position:sticky;top:60px;z-index:90"></div>
 
     <!-- ① 주간 실적 -->
     <div class="sec">주간 실적 <span class="sec-b">선택 주차 기준</span></div>
@@ -333,7 +333,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p2" class="pg">
   <div id="p2-spin" class="spinner-wrap"><div class="spinner"></div><span>Today B tv 데이터 불러오는 중...</span></div>
   <div id="p2-body" style="display:none">
-    <div class="wbar" id="wb2" style="position:sticky;top:52px;z-index:90"></div>
+    <div class="wbar" id="wb2" style="position:sticky;top:60px;z-index:90"></div>
     <div class="sec" style="justify-content:space-between">
       <span>① 주간 실적 Summary</span>
       <div style="display:flex;gap:8px;align-items:center">
@@ -366,7 +366,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p3" class="pg">
   <div id="p3-spin" class="spinner-wrap"><div class="spinner"></div><span>콘텐츠 블록 데이터 불러오는 중...</span></div>
   <div id="p3-body" style="display:none">
-    <div class="wbar" id="wb3" style="position:sticky;top:52px;z-index:90"></div>
+    <div class="wbar" id="wb3" style="position:sticky;top:60px;z-index:90"></div>
     <div class="sec" style="justify-content:space-between">
       <span>① 주간 실적 Summary</span>
       <div style="display:flex;gap:8px;align-items:center">
@@ -398,7 +398,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <div id="p4" class="pg">
   <div id="p4-spin" class="spinner-wrap"><div class="spinner"></div><span>배너 데이터 불러오는 중...</span></div>
   <div id="p4-body" style="display:none">
-    <div class="wbar" id="wb4" style="position:sticky;top:52px;z-index:90"></div>
+    <div class="wbar" id="wb4" style="position:sticky;top:60px;z-index:90"></div>
     <div class="sec" style="justify-content:space-between">
       <span>① 주간 실적 Summary</span>
       <button class="bsm" onclick="excelDown('t4s','배너_주간Summary')">⬇ 엑셀</button>
@@ -1027,7 +1027,7 @@ function rTbl1() {
   ];
   const d1 = HD.date1 || [];
   const d2 = HD.date2 || [];
-  const li = HD.weeks.length - 1; // 마지막 주차 인덱스
+  const li = hsi; // 선택 주차 인덱스
 
   const tblEl = document.getElementById('tbl1');
   if(!tblEl) return;
@@ -1133,7 +1133,7 @@ function rT2Sum() {
     return `(${fmt(dates[0])} ~ ${fmt(dates[dates.length-1])})`;
   };
 
-  const li = TDB.weeks.length - 1; // 마지막 주차 인덱스
+  const li = ti2; // 선택 주차 인덱스
 
   let h=`<thead><tr>
     <th>구분</th><th style="text-align:center">상세 구분</th>
@@ -1296,7 +1296,7 @@ function rT3Sum() {
     return `(${fmt(dates[0])} ~ ${fmt(dates[dates.length-1])})`;
   };
 
-  const li = CB.weeks.length - 1;
+  const li = ti3; // 선택 주차 인덱스
   const rowspan = CB_RULES.length + 1; // 전체 + 분류별
 
   let h=`<thead><tr>
@@ -1799,7 +1799,7 @@ function rT4Sum() {
     return `(${fmt(dates[0])} ~ ${fmt(dates[dates.length-1])})`;
   };
 
-  const li=CB.weeks.length-1;
+  const li=ti4; // 선택 주차 인덱스
   const rowspan=BN_RULES.length+1;
 
   let h=`<thead><tr>
@@ -1966,15 +1966,18 @@ function drawDetailBannerChart(name, weeks, uvData, pvData, revData, metric) {
 }
 
 function openDetailBlock(blockName, src) {
-  const srcData = src==='race' ? CB.race : CB.gen;
   const weeks = CB.weeks;
 
-  const uvData  = weeks.map(w => { const r = blkDA(src, w).find(x=>x.block===blockName); return r ? r.avgUV    : null; });
-  const pvData  = weeks.map(w => { const r = blkDA(src, w).find(x=>x.block===blockName); return r ? r.avgPV    : null; });
-  const revData = weeks.map(w => { const r = blkDA(src, w).find(x=>x.block===blockName); return r ? r.totalRev : null; });
+  // 배너 src인지 콘텐츠 블록 src인지 구분
+  const isBnr = src && src.startsWith('bnr_');
+  const bnrRule = isBnr ? BN_RULES.find(r=>r.key===src) : null;
+  const cbRule  = !isBnr ? CB_RULES.find(r=>r.key===src) : null;
+  const typeLabel = bnrRule ? bnrRule.label : (cbRule ? cbRule.label : src);
+  const typeColor = bnrRule ? bnrRule.color : (cbRule ? cbRule.color : '#86868b');
 
-  const typeLabel = src==='race' ? 'RACE' : '일반';
-  const typeColor = src==='race' ? '#3B5BDB' : '#059669';
+  const uvData  = weeks.map(w => { const r = isBnr ? bnrDA(src,w).find(x=>x.block===blockName) : blkDA(src,w).find(x=>x.block===blockName); return r ? r.avgUV    : null; });
+  const pvData  = weeks.map(w => { const r = isBnr ? bnrDA(src,w).find(x=>x.block===blockName) : blkDA(src,w).find(x=>x.block===blockName); return r ? r.avgPV    : null; });
+  const revData = weeks.map(w => { const r = isBnr ? bnrDA(src,w).find(x=>x.block===blockName) : blkDA(src,w).find(x=>x.block===blockName); return r ? r.totalRev : null; });
 
   const latestIdx = uvData.reduce((acc,v,i)=>v!==null?i:acc, -1);
   const kpiUV  = latestIdx>=0 ? uvData[latestIdx]  : null;
@@ -1991,17 +1994,16 @@ function openDetailBlock(blockName, src) {
   ].map(k=>`<div class="detail-kpi"><div class="kl">${k.l}</div><div class="kv">${k.v}</div></div>`).join('');
 
   document.getElementById('detailOv').classList.add('open');
-  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBlockChart(blockName, src, weeks, uvData, pvData, revData, m));
-  drawDetailBlockChart(blockName, src, weeks, uvData, pvData, revData, 'uv');
+  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBlockChart(blockName, src, typeColor, weeks, uvData, pvData, revData, m));
+  drawDetailBlockChart(blockName, src, typeColor, weeks, uvData, pvData, revData, 'uv');
 }
 
-function drawDetailBlockChart(name, src, weeks, uvData, pvData, revData, metric) {
-  const typeColor = src==='race'?'#3B5BDB':'#059669';
-  const typeBg    = src==='race'?'rgba(59,91,219,.1)':'rgba(5,150,105,.1)';
+function drawDetailBlockChart(name, src, typeColor, weeks, uvData, pvData, revData, metric) {
+  const typeBg = typeColor + '22';
   const map = {
-    uv:  {d:uvData,  c:typeColor, bg:typeBg,               l:'일평균 UV'},
-    pv:  {d:pvData,  c:'#34c759', bg:'rgba(52,199,89,.1)',  l:'일평균 PV'},
-    rev: {d:revData, c:'#ff9f0a', bg:'rgba(255,159,10,.1)', l:'총 매출'}
+    uv:  {d:uvData,  c:typeColor, bg:typeBg,                  l:'일평균 UV'},
+    pv:  {d:pvData,  c:'#34c759', bg:'rgba(52,199,89,.1)',     l:'일평균 PV'},
+    rev: {d:revData, c:'#ff9f0a', bg:'rgba(255,159,10,.1)',    l:'총 매출'}
   };
   const {d, c, bg, l} = map[metric];
   const el = document.getElementById('detailChart');
