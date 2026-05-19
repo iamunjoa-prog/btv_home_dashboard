@@ -181,7 +181,19 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 .name-link{color:var(--blue);cursor:pointer;font-weight:600;text-decoration:none;border-bottom:1px dashed rgba(0,113,227,.35);transition:border-color .15s}
 .name-link:hover{border-bottom-color:var(--blue)}
 
-/* ── 상세 팝업 모달 ── */
+.admin-rule{background:var(--sf2);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--bd)}
+.admin-rule-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.admin-rule-name{font-size:13px;font-weight:700;flex:1}
+.admin-color-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.admin-rule-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.admin-lbl{font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px}
+.admin-inp{width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:var(--sf);outline:none;transition:border-color .15s}
+.admin-inp:focus{border-color:var(--blue)}
+.admin-rule-del{font-size:11px;color:var(--t3);cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid var(--bd);background:transparent;font-family:inherit;transition:all .15s}
+.admin-rule-del:hover{color:#ff3b30;border-color:#ff3b30}
+.admin-pw-wrap{padding:20px 0;text-align:center}
+
+/* 관리자 모달 ── */
 .detail-ov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .detail-ov.open{opacity:1;pointer-events:all}
 .detail-modal{background:var(--sf);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.28);padding:28px 28px 24px;width:720px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s}
@@ -221,8 +233,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <div class="m-tab-field"><span class="m-tab-lbl">P1 홈 전체</span><input class="m-tab-inp" id="cfg-t0" value="홈 전체"></div>
       <div class="m-tab-field"><span class="m-tab-lbl">P2 이벤트 탭</span><input class="m-tab-inp" id="cfg-t1" value="Today B tv_이벤트타입"></div>
       <div class="m-tab-field"><span class="m-tab-lbl">P2 콘텐츠 탭</span><input class="m-tab-inp" id="cfg-t2" value="Today B tv_콘텐츠타입"></div>
-      <div class="m-tab-field"><span class="m-tab-lbl">P3 일반 블록</span><input class="m-tab-inp" id="cfg-t3" value="콘텐츠 블록_일반"></div>
-      <div class="m-tab-field"><span class="m-tab-lbl">P3 RACE/랭킹</span><input class="m-tab-inp" id="cfg-t4" value="콘텐츠 블록_RACE/랭킹"></div>
+      <div class="m-tab-field"><span class="m-tab-lbl">P3 콘텐츠 블록 (raw)</span><input class="m-tab-inp" id="cfg-t3" value="콘텐츠 블록"></div>
     </div>
     <div class="m-btns">
       <button class="bsm" onclick="closeOv()">취소</button>
@@ -231,7 +242,47 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   </div>
 </div>
 
-<!-- ════ HEADER ════ -->
+<!-- ════ 관리자 모달 ════ -->
+<div class="ov" id="ovAdmin">
+  <div class="modal" style="width:660px;max-height:85vh;overflow-y:auto">
+    <div class="m-ttl">🔧 관리자 모드</div>
+    <div style="display:flex;gap:4px;background:var(--sf2);border-radius:10px;padding:4px;width:fit-content;margin-bottom:16px">
+      <button class="detail-tb on" id="adm-tab-cb" onclick="switchAdminTab('cb',this)">콘텐츠 블록 분류</button>
+      <button class="detail-tb" id="adm-tab-bn" onclick="switchAdminTab('bn',this)">배너 분류</button>
+    </div>
+
+    <!-- 콘텐츠 블록 규칙 -->
+    <div id="adm-cb-wrap">
+      <div class="m-dsc">블록명에 포함된 키워드 기준으로 분류합니다. 위에서부터 순서대로 적용되며, 마지막 분류가 기본값(나머지 전부)입니다. <strong>배너로 분류된 블록은 여기서 자동 제외됩니다.</strong></div>
+      <div id="admin-rules-wrap"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;margin-bottom:14px">
+        <button class="bsm" onclick="adminAddRule()">+ 분류 추가</button>
+        <button class="bsm" style="color:#ff3b30" onclick="adminResetRules()">초기화</button>
+      </div>
+    </div>
+
+    <!-- 배너 규칙 -->
+    <div id="adm-bn-wrap" style="display:none">
+      <div class="m-dsc">배너로 판별할 블록명 키워드를 설정합니다. 위에서부터 순서대로 적용됩니다. 배너로 분류된 블록은 콘텐츠 블록 실적에서 자동 제외됩니다.</div>
+      <div id="admin-bnr-wrap"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;margin-bottom:14px">
+        <button class="bsm" onclick="adminAddBnrRule()">+ 배너 분류 추가</button>
+        <button class="bsm" style="color:#ff3b30" onclick="adminResetBnrRules()">초기화</button>
+      </div>
+    </div>
+
+    <div style="background:var(--sf2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px">
+      💡 <strong>포함 키워드</strong>: 블록명에 이 단어가 있으면 해당 분류로 지정 (쉼표로 구분)<br>
+      💡 <strong>제외 키워드</strong>: 이 단어가 포함되면 해당 분류에서 제외 (쉼표로 구분)
+    </div>
+    <div class="m-btns">
+      <button class="bsm" onclick="closeAdmin()">취소</button>
+      <button class="bsm pri" onclick="adminSave()">저장 및 재분류</button>
+    </div>
+  </div>
+</div>
+
+
 <header class="hdr">
   <div class="hdr-in">
     <div class="logo">홈 이용 <span>Dashboard</span></div>
@@ -239,9 +290,11 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <button class="nb on" onclick="goPage('p1',this)">홈 전체 이용 현황</button>
       <button class="nb" onclick="goPage('p2',this)">Today B tv 이용 현황</button>
       <button class="nb" onclick="goPage('p3',this)">콘텐츠 블록 이용 현황</button>
+      <button class="nb" onclick="goPage('p4',this)">배너 이용 현황</button>
     </nav>
     <div class="hdr-r">
       <div class="sync"><div class="dot" id="sdot"></div><span id="slbl">연결 중...</span></div>
+      <button class="bsm" onclick="openAdmin()">🔧 관리자</button>
       <button class="bsm" onclick="openOv()">⚙ 설정</button>
     </div>
   </div>
@@ -341,7 +394,33 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   </div>
 </div>
 
-<!-- ════ 배너/블록 상세 팝업 ════ -->
+<!-- ════ PAGE 4 ════ -->
+<div id="p4" class="pg">
+  <div id="p4-spin" class="spinner-wrap"><div class="spinner"></div><span>배너 데이터 불러오는 중...</span></div>
+  <div id="p4-body" style="display:none">
+    <div class="wbar" id="wb4" style="position:sticky;top:52px;z-index:90"></div>
+    <div class="sec" style="justify-content:space-between">
+      <span>① 주간 실적 Summary</span>
+      <button class="bsm" onclick="excelDown('t4s','배너_주간Summary')">⬇ 엑셀</button>
+    </div>
+    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t4s"></table></div></div>
+    <div class="sec">② 주차별 배너 랭킹 <span class="sec-b" id="t4wl"></span></div>
+    <div class="tbar" id="t4tbar"></div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="bsm" onclick="excelDown('t4r','배너_랭킹')">⬇ 엑셀 다운로드</button>
+      </div>
+      <div class="tw"><table id="t4r"></table></div>
+    </div>
+    <div class="sec">③ 추이 차트</div>
+    <div class="cg2">
+      <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c4c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c4c','배너_운영수량추이')">📷 저장</button></div>
+      <div class="card chart-wrap"><div class="cft">일평균 UV 추이</div><canvas id="c4u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c4u','배너_UV추이')">📷 저장</button></div>
+    </div>
+  </div>
+</div>
+
+
 <div class="detail-ov" id="detailOv" onclick="if(event.target===this)closeDetail()">
   <div class="detail-modal">
     <div class="detail-modal-hdr">
@@ -367,8 +446,7 @@ const DEFAULT_CFG = {
     home:    '홈 전체',
     tdbEv:   'Today B tv_이벤트타입',
     tdbCt:   'Today B tv_콘텐츠타입',
-    cbGen:   '콘텐츠 블록_일반',
-    cbRace:  '콘텐츠 블록_RACE/랭킹'
+    cbRaw:   '콘텐츠 블록'
   }
 };
 let CFG = JSON.parse(JSON.stringify(DEFAULT_CFG));
@@ -379,7 +457,93 @@ let CFG = JSON.parse(JSON.stringify(DEFAULT_CFG));
 let HD=null,  hsi=0, htt='uv';
 let TDB=null, ti2=0, tt2='all';
 let CB=null,  ti3=0, tt3='all';
+let ti4=0, tt4='all';
 const CH = {};
+
+/* ═══════════════════════════════════════
+   블록 분류 규칙 (관리자 설정)
+   우선순위: RACE → MY → 일반
+═══════════════════════════════════════ */
+const DEFAULT_CB_RULES = [
+  {
+    key: 'race', label: 'RACE', color: '#3B5BDB',
+    include: ['RACE','인기 순위','AI','import','고객님','어제 가장'],
+    exclude: ['폴페이지']
+  },
+  {
+    key: 'my', label: 'MY', color: '#af52de',
+    include: [],
+    exclude: ['RACE','인기 순위','배너','타겟','AI','import','고객님','홀','Today B tv','MY 블록','MY B tv','고객님이 시청 중인 콘텐츠','MY 메뉴 블록','MY 쿠폰','#'],
+    notIn: ['Today B tv','MY 블록','MY B tv','고객님이 시청 중인 콘텐츠','MY 메뉴 블록','MY 쿠폰/포인트','#']
+  },
+  {
+    key: 'gen', label: '일반', color: '#059669',
+    include: [], exclude: []  // 나머지 전부
+  }
+];
+
+let CB_RULES = loadCbRules();
+
+function loadCbRules() {
+  try {
+    const s = localStorage.getItem('cbRules');
+    return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_CB_RULES));
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_CB_RULES)); }
+}
+function saveCbRules() {
+  try { localStorage.setItem('cbRules', JSON.stringify(CB_RULES)); } catch(e) {}
+}
+
+/* ═══════════════════════════════════════
+   배너 분류 규칙 (관리자 설정)
+   배너는 CB_RULES보다 먼저 적용됨
+═══════════════════════════════════════ */
+const DEFAULT_BN_RULES = [
+  { key: 'bnr_띠',  label: '띠배너',  color: '#0071e3', include: ['띠배너'], exclude: [] },
+  { key: 'bnr_풀',  label: '풀페이지', color: '#af52de', include: ['풀페이지','폴페이지'], exclude: [] },
+  { key: 'bnr_롱',  label: '롱배너',  color: '#ff9f0a', include: ['롱배너'], exclude: [] },
+  { key: 'bnr_메뉴', label: '메뉴블록', color: '#34c759', include: ['메뉴블록'], exclude: [] },
+  { key: 'bnr_etc', label: '기타배너', color: '#86868b', include: ['배너'], exclude: [] }
+];
+
+let BN_RULES = loadBnRules();
+
+function loadBnRules() {
+  try { const s=localStorage.getItem('bnRules'); return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT_BN_RULES)); }
+  catch(e) { return JSON.parse(JSON.stringify(DEFAULT_BN_RULES)); }
+}
+function saveBnRules() {
+  try { localStorage.setItem('bnRules', JSON.stringify(BN_RULES)); } catch(e) {}
+}
+
+/* 블록명 → 배너 key 반환 (없으면 null) */
+function classifyBanner(blockName) {
+  const name = blockName || '';
+  for(const rule of BN_RULES) {
+    const inc = rule.include || [], exc = rule.exclude || [];
+    if(exc.some(k=>name.includes(k))) continue;
+    if(inc.some(k=>name.includes(k))) return rule.key;
+  }
+  return null;
+}
+
+/* 블록명 → 분류 key 반환 */
+function classifyBlock(blockName) {
+  const name = blockName || '';
+  for(const rule of CB_RULES) {
+    if(rule.key === 'gen') return 'gen'; // 마지막은 항상 일반
+    const inc = rule.include || [];
+    const exc = rule.exclude || [];
+    const notIn = rule.notIn || [];
+    // notIn 조건 (블록명 완전 일치 제외)
+    if(notIn.length && notIn.some(k => name === k)) continue;
+    // exclude 키워드 포함되면 해당 규칙 스킵
+    if(exc.some(k => name.includes(k))) continue;
+    // include 키워드 하나라도 포함되면 해당 분류
+    if(inc.length === 0 || inc.some(k => name.includes(k))) return rule.key;
+  }
+  return 'gen';
+}
 
 /* ═══════════════════════════════════════
    NAV
@@ -399,8 +563,7 @@ function openOv() {
   document.getElementById('cfg-t0').value   = CFG.tabs.home;
   document.getElementById('cfg-t1').value   = CFG.tabs.tdbEv;
   document.getElementById('cfg-t2').value   = CFG.tabs.tdbCt;
-  document.getElementById('cfg-t3').value   = CFG.tabs.cbGen;
-  document.getElementById('cfg-t4').value   = CFG.tabs.cbRace;
+  document.getElementById('cfg-t3').value   = CFG.tabs.cbRaw;
   document.getElementById('ovCfg').classList.add('open');
 }
 function closeOv() { document.getElementById('ovCfg').classList.remove('open'); }
@@ -524,47 +687,47 @@ async function connectAll() {
   CFG.tabs.home   = document.getElementById('cfg-t0').value.trim();
   CFG.tabs.tdbEv  = document.getElementById('cfg-t1').value.trim();
   CFG.tabs.tdbCt  = document.getElementById('cfg-t2').value.trim();
-  CFG.tabs.cbGen  = document.getElementById('cfg-t3').value.trim();
-  CFG.tabs.cbRace = document.getElementById('cfg-t4').value.trim();
+  CFG.tabs.cbRaw  = document.getElementById('cfg-t3').value.trim();
   closeOv();
   await loadAll();
 }
 
 async function loadAll() {
   setSS('loading', '데이터 불러오는 중...');
-  ['p1','p2','p3'].forEach(id => {
-    document.getElementById(`${id}-spin`).style.display='';
-    document.getElementById(`${id}-body`).style.display='none';
+  ['p1','p2','p3','p4'].forEach(id => {
+    const s=document.getElementById(`${id}-spin`); if(s) s.style.display='';
+    const b=document.getElementById(`${id}-body`); if(b) b.style.display='none';
   });
 
   try {
-    // 5탭 병렬 fetch
-    const [csvHome, csvEv, csvCt, csvGen, csvRace] = await Promise.all([
+    // 4탭 병렬 fetch
+    const [csvHome, csvEv, csvCt, csvRaw] = await Promise.all([
       fetchTab(CFG.tabs.home),
       fetchTab(CFG.tabs.tdbEv),
       fetchTab(CFG.tabs.tdbCt),
-      fetchTab(CFG.tabs.cbGen),
-      fetchTab(CFG.tabs.cbRace),
+      fetchTab(CFG.tabs.cbRaw),
     ]);
 
     HD  = parseHomeCSV(csvHome);
     TDB = parseTdbCSV(csvEv, csvCt);
-    CB  = parseCbCSV(csvGen, csvRace);
+    CB  = parseCbCSV(csvRaw);
 
     hsi = HD.weeks.length - 1;
     ti2 = TDB.weeks.length - 1;
     ti3 = CB.weeks.length - 1;
+    ti4 = CB.weeks.length - 1;
 
     // 렌더
     renderP1();
     renderP2();
     renderP3();
+    renderP4();
     // 인사이트 자동 생성
     setTimeout(()=>{ genInsight("p1"); genInsight("p2"); genInsight("p3"); }, 100);
 
-    ['p1','p2','p3'].forEach(id => {
-      document.getElementById(`${id}-spin`).style.display='none';
-      document.getElementById(`${id}-body`).style.display='';
+    ['p1','p2','p3','p4'].forEach(id => {
+      const s=document.getElementById(`${id}-spin`); if(s) s.style.display='none';
+      const b=document.getElementById(`${id}-body`); if(b) b.style.display='';
     });
 
     setSS('ok', `연동됨 · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`);
@@ -574,7 +737,7 @@ async function loadAll() {
 
   } catch(e) {
     setSS('err', '연결 실패');
-    ['p1','p2','p3'].forEach(id => {
+    ['p1','p2','p3','p4'].forEach(id => {
       const spin = document.getElementById(`${id}-spin`);
       if(spin) spin.innerHTML = `<div style="color:#ff3b30;font-size:13px;text-align:center;padding:40px 20px;line-height:1.8">
         ⚠️ 데이터 로드 실패<br><strong>${e.message}</strong><br><br>
@@ -657,29 +820,39 @@ function parseTdbCSV(csvEv, csvCt) {
 }
 
 /* ═══════════════════════════════════════
-   PAGE 3 PARSE
+   PAGE 3 PARSE — raw 1개 탭 → 분류 규칙으로 자동 분류
    컬럼: A=날짜 B=블록명 C=UV D=PV E=매출
 ═══════════════════════════════════════ */
-function parseCbCSV(csvGen, csvRace) {
-  function parseTab(text, src) {
-    return csvRows(text).map(row => {
-      const dt = parseDate(row[0]); if(!dt) return null;
-      const block = (row[1]||'').trim(); if(!block || block==='#' || block==='nan') return null;
-      return {
-        date:  dt,
-        block,
-        uv:    toNum(row[2]),
-        pv:    toNum(row[3]),
-        rev:   toNum(row[4]),
-        week:  getWL(dt),
-        src
-      };
-    }).filter(Boolean);
-  }
-  const genData  = parseTab(csvGen, 'gen');
-  const raceData = parseTab(csvRace, 'race');
-  const weeks    = [...new Set([...genData,...raceData].map(d=>d.week).filter(Boolean))].sort();
-  return { gen:genData, race:raceData, weeks };
+function parseCbCSV(csvRaw) {
+  const all = csvRows(csvRaw).map(row => {
+    const dt = parseDate(row[0]); if(!dt) return null;
+    const block = (row[1]||'').trim(); if(!block || block==='#' || block==='nan') return null;
+    const bnrKey = classifyBanner(block);
+    return {
+      date:  dt, block,
+      uv:    toNum(row[2]),
+      pv:    toNum(row[3]),
+      rev:   toNum(row[4]),
+      week:  getWL(dt),
+      isBanner: !!bnrKey,
+      bnrSrc: bnrKey,
+      src:   bnrKey ? 'banner' : classifyBlock(block)
+    };
+  }).filter(Boolean);
+
+  const weeks = [...new Set(all.map(d=>d.week).filter(Boolean))].sort();
+
+  // P3용: 배너 제외
+  const bySrc = {};
+  CB_RULES.forEach(r=>bySrc[r.key]=[]);
+  all.filter(d=>!d.isBanner).forEach(d=>{ if(bySrc[d.src]) bySrc[d.src].push(d); });
+
+  // P4용: 배너만
+  const byBnr = {};
+  BN_RULES.forEach(r=>byBnr[r.key]=[]);
+  all.filter(d=>d.isBanner).forEach(d=>{ if(byBnr[d.bnrSrc]) byBnr[d.bnrSrc].push(d); });
+
+  return { all, weeks, bySrc, byBnr };
 }
 
 /* ═══════════════════════════════════════
@@ -1062,10 +1235,10 @@ function rWb3() {
 }
 function sw3(i) { ti3=i; rWb3(); rT3All(); }
 
-/* 블록별 일평균 (Python blkDA 재현) */
+/* 블록별 일평균 */
 function blkDA(src, week) {
-  const data=(src==='race'?CB.race:CB.gen)||[];
-  const rows=data.filter(d=>d.week===week);
+  const data = (CB.bySrc[src] || []);
+  const rows = data.filter(d=>d.week===week);
   const map={};
   rows.forEach(d=>{
     const k=d.block;
@@ -1078,10 +1251,10 @@ function blkDA(src, week) {
     .sort((a,b)=>b.avgUV-a.avgUV);
 }
 
-/* 주간 집계 (Python cbWS 재현) */
+/* 주간 집계 */
 function cbWS(src, week) {
-  const data=(src==='race'?CB.race:CB.gen)||[];
-  const rows=data.filter(d=>d.week===week);
+  const data = (CB.bySrc[src] || []);
+  const rows = data.filter(d=>d.week===week);
   if(!rows.length) return {opCount:0,avgUV:0,avgPV:0};
   const byDay={};
   rows.forEach(d=>{
@@ -1100,11 +1273,18 @@ function cbWS(src, week) {
 function rT3All() {
   document.getElementById('t3wl').textContent = CB.weeks[ti3];
   rT3Sum(); rT3Rank(); rT3Ch();
+  // 탭 버튼 동적 생성
+  const tbar = document.querySelector('#p3-body .tbar');
+  if(tbar) {
+    tbar.innerHTML = `<button class="tb${tt3==='all'?' on':''}" onclick="t3tb('all',this)">📊 전체</button>` +
+      CB_RULES.map(r=>`<button class="tb${tt3===r.key?' on':''}" onclick="t3tb('${r.key}',this)">${r.label}</button>`).join('');
+  }
 }
 
 function rT3Sum() {
-  const rm={}, gm={};
-  CB.weeks.forEach(w=>{rm[w]=cbWS('race',w); gm[w]=cbWS('gen',w);});
+  const sm = {}; // {key: {week: cbWS결과}}
+  CB_RULES.forEach(r => { sm[r.key]={}; CB.weeks.forEach(w=>{ sm[r.key][w]=cbWS(r.key,w); }); });
+
   const secs=[
     {key:'opCount',label:'운영 수량',isI:true},
     {key:'avgUV',  label:'일평균 UV'},
@@ -1112,7 +1292,7 @@ function rT3Sum() {
   ];
 
   const wkDateRange = w => {
-    const rows = [...(CB.gen||[]),...(CB.race||[])].filter(d=>d.week===w);
+    const rows = CB.all.filter(d=>d.week===w);
     if(!rows.length) return '';
     const dates = rows.map(d=>d.date).sort((a,b)=>a-b);
     const fmt = d => `${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
@@ -1120,6 +1300,7 @@ function rT3Sum() {
   };
 
   const li = CB.weeks.length - 1;
+  const rowspan = CB_RULES.length + 1; // 전체 + 분류별
 
   let h=`<thead><tr>
     <th>구분</th><th>상세</th>
@@ -1131,39 +1312,34 @@ function rT3Sum() {
   </tr></thead><tbody>`;
 
   secs.forEach(sec=>{
-    const tv=CB.weeks.map(w=>(rm[w][sec.key]||0)+(gm[w][sec.key]||0));
-    const gv=CB.weeks.map(w=>gm[w][sec.key]||0);
-    const rv=CB.weeks.map(w=>rm[w][sec.key]||0);
-
-    const mkWow = (vals) => {
+    // 전체합
+    const tv = CB.weeks.map(w => CB_RULES.reduce((s,r)=>s+(sm[r.key][w][sec.key]||0),0));
+    const mkWow = vals => {
       const cv=vals[li], pv2=li>0?vals[li-1]:null;
-      const abs = pv2!=null ? cv-pv2 : null;
-      const pct = pv2!=null&&pv2!==0 ? ((cv-pv2)/Math.abs(pv2)*100).toFixed(1) : null;
-      const absH = abs!==null ? `<span class="${abs>0?'pos':'neg'}">${abs>0?'+':''}${sec.isI?Math.round(abs).toLocaleString():FC(abs)}</span>` : '-';
-      const pctH = pct!==null ? `<span class="${WC(pct)}">${WA(pct)}${Math.abs(parseFloat(pct))}%</span>` : '-';
-      return {absH, pctH};
+      const abs=pv2!=null?cv-pv2:null, pct=pv2!=null&&pv2!==0?((cv-pv2)/Math.abs(pv2)*100).toFixed(1):null;
+      return {
+        absH: abs!==null?`<span class="${abs>0?'pos':'neg'}">${abs>0?'+':''}${sec.isI?Math.round(abs).toLocaleString():FC(abs)}</span>`:'-',
+        pctH: pct!==null?`<span class="${WC(pct)}">${WA(pct)}${Math.abs(parseFloat(pct))}%</span>`:'-'
+      };
     };
-
-    const {absH:tA, pctH:tP} = mkWow(tv);
-    const {absH:gA, pctH:gP} = mkWow(gv);
-    const {absH:rA, pctH:rP} = mkWow(rv);
+    const {absH:tA,pctH:tP}=mkWow(tv);
 
     h+=`<tr class="rh">
-      <td rowspan="3" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
+      <td rowspan="${rowspan}" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
       <td style="font-weight:700">전체</td>
       ${tv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
       <td style="text-align:right">${tA}</td><td style="text-align:right">${tP}</td>
     </tr>`;
-    h+=`<tr>
-      <td style="padding-left:18px;color:#059669">일반</td>
-      ${gv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
-      <td style="text-align:right">${gA}</td><td style="text-align:right">${gP}</td>
-    </tr>`;
-    h+=`<tr>
-      <td style="padding-left:18px;color:#3B5BDB">RACE</td>
-      ${rv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
-      <td style="text-align:right">${rA}</td><td style="text-align:right">${rP}</td>
-    </tr>`;
+
+    CB_RULES.forEach(rule=>{
+      const rv=CB.weeks.map(w=>sm[rule.key][w][sec.key]||0);
+      const {absH,pctH}=mkWow(rv);
+      h+=`<tr>
+        <td style="padding-left:18px;color:${rule.color};font-weight:600">${rule.label}</td>
+        ${rv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
+        <td style="text-align:right">${absH}</td><td style="text-align:right">${pctH}</td>
+      </tr>`;
+    });
     h+=`<tr><td colspan="${CB.weeks.length+4}" style="height:6px;background:var(--sf2)"></td></tr>`;
   });
   if(document.getElementById('t3s')) document.getElementById('t3s').innerHTML=h+'</tbody>';
@@ -1174,26 +1350,18 @@ function t3tb(t,btn) { tt3=t; btn.closest('.tbar').querySelectorAll('.tb').forEa
 function rT3Rank() {
   const sw=CB.weeks[ti3], pw=ti3>0?CB.weeks[ti3-1]:null;
 
-  // 전체 탭: gen + race 합쳐서 avgUV 기준 정렬
   let curr, prev;
   if(tt3==='all') {
-    const merge = (week) => {
-      const g = blkDA('gen', week);
-      const r = blkDA('race', week);
-      return [...g.map(x=>({...x,src:'gen'})), ...r.map(x=>({...x,src:'race'}))]
-               .sort((a,b)=>b.avgUV-a.avgUV);
-    };
-    curr = merge(sw);
-    prev = pw ? merge(pw) : [];
+    const merge = week => CB_RULES.flatMap(r=>blkDA(r.key,week).map(x=>({...x,src:r.key}))).sort((a,b)=>b.avgUV-a.avgUV);
+    curr=merge(sw); prev=pw?merge(pw):[];
   } else {
-    curr = blkDA(tt3, sw);
-    prev = pw ? blkDA(tt3, pw) : [];
+    curr=blkDA(tt3,sw); prev=pw?blkDA(tt3,pw):[];
   }
 
   const pm={}; prev.forEach(p=>pm[p.block]=p);
-  const showType = tt3==='all';
-  const col = tt3==='race'?'#3B5BDB': tt3==='gen'?'#059669':'var(--t2)';
-  const cols = showType ? 9 : 8;
+  const showType=tt3==='all';
+  const cols=showType?9:8;
+  const ruleMap={}; CB_RULES.forEach(r=>ruleMap[r.key]=r);
 
   let h=`<thead><tr>
     <th style="width:44px">Rank</th>
@@ -1211,14 +1379,13 @@ function rT3Rank() {
       const uW=isN?'<span class="ntag">NEW</span>':wCell(r.avgUV,p.avgUV);
       const pW=isN?'<span class="ntag">NEW</span>':wCell(r.avgPV,p.avgPV);
       const rW=isN?'<span class="ntag">NEW</span>':wCell(r.totalRev,p.totalRev);
-      const rankCol = i<3 ? `background:${r.src==='race'?'#3B5BDB':'#059669'}` : '';
-      const typeCol = showType
-        ? `<td style="text-align:center;font-size:11px;font-weight:600;color:${r.src==='race'?'#3B5BDB':'#059669'}">${r.src==='race'?'RACE':'일반'}</td>`
-        : '';
-      const safeBlock = r.block.replace(/'/g,"\\'");
-      const safeSrc   = (r.src||tt3).replace(/'/g,"\\'");
+      const rule=ruleMap[r.src||tt3]||ruleMap['gen'];
+      const rankBg=i<3?`background:${rule.color}`:'';
+      const typeCol=showType?`<td style="text-align:center;font-size:11px;font-weight:600;color:${rule.color}">${rule.label}</td>`:'';
+      const safeBlock=r.block.replace(/'/g,"\\'");
+      const safeSrc=(r.src||tt3).replace(/'/g,"\\'");
       h+=`<tr>
-        <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${rankCol}">${i+1}</span></td>
+        <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${rankBg}">${i+1}</span></td>
         <td style="text-align:left"><span class="name-link" onclick="openDetailBlock('${safeBlock}','${safeSrc}')">${r.block}</span></td>
         ${typeCol}
         <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${N(r.totalRev)}</td>
@@ -1226,22 +1393,16 @@ function rT3Rank() {
       </tr>`;
     });
   }
-
-  if(document.getElementById('t3r')) document.getElementById('t3r').innerHTML = h+'</tbody>';
+  if(document.getElementById('t3r')) document.getElementById('t3r').innerHTML=h+'</tbody>';
 }
 
 function rT3Ch() {
-  const rm={}, gm={};
-  CB.weeks.forEach(w=>{rm[w]=cbWS('race',w); gm[w]=cbWS('gen',w);});
-  mkB('c3c',[
-    {label:'일반',data:CB.weeks.map(w=>gm[w].opCount),backgroundColor:'#059669',borderRadius:4},
-    {label:'RACE',data:CB.weeks.map(w=>rm[w].opCount),backgroundColor:'#3B5BDB',borderRadius:4},
-  ], null, CB.weeks);
-  const oU=o=>{o.scales.y.ticks.callback=v=>v.toLocaleString();};
-  mkL('c3u',[
-    {label:'일반',data:CB.weeks.map(w=>+gm[w].avgUV.toFixed(1)),borderColor:'#059669',tension:.4,pointRadius:3,borderWidth:2,backgroundColor:'transparent'},
-    {label:'RACE',data:CB.weeks.map(w=>+rm[w].avgUV.toFixed(1)),borderColor:'#3B5BDB',tension:.4,pointRadius:3,borderWidth:2,backgroundColor:'transparent'},
-  ], oU, CB.weeks);
+  mkB('c3c',
+    CB_RULES.map(r=>({label:r.label, data:CB.weeks.map(w=>cbWS(r.key,w).opCount), backgroundColor:r.color, borderRadius:4})),
+    null, CB.weeks);
+  mkL('c3u',
+    CB_RULES.map(r=>({label:r.label, data:CB.weeks.map(w=>+cbWS(r.key,w).avgUV.toFixed(1)), borderColor:r.color, tension:.4, pointRadius:3, borderWidth:2, backgroundColor:'transparent'})),
+    o=>{o.scales.y.ticks.callback=v=>v.toLocaleString();}, CB.weeks);
 }
 
 /* ═══════════════════════════════════════
@@ -1559,8 +1720,180 @@ function genP3Insight() {
 
 
 /* ═══════════════════════════════════════
-   배너 / 블록 상세 팝업
+   PAGE 4 RENDER — 배너 이용 현황
 ═══════════════════════════════════════ */
+function renderP4() { rWb4(); rT4All(); }
+
+function rWb4() {
+  const wb=document.getElementById('wb4');
+  if(wb) wb.innerHTML=CB.weeks.map((w,i)=>
+    `<button class="wbtn${i===ti4?' on':''}" onclick="sw4(${i})">${w}</button>`).join('');
+}
+function sw4(i) { ti4=i; rWb4(); rT4All(); }
+
+function bnrDA(src, week) {
+  const data=(src==='all') ? CB.all.filter(d=>d.isBanner) : (CB.byBnr[src]||[]);
+  const rows=data.filter(d=>d.week===week);
+  const map={};
+  rows.forEach(d=>{
+    const k=d.block;
+    if(!map[k]) map[k]={uv:0,pv:0,rev:0,days:new Set()};
+    map[k].uv+=d.uv; map[k].pv+=d.pv; map[k].rev+=d.rev;
+    map[k].days.add(d.date.toISOString().slice(0,10));
+  });
+  return Object.entries(map)
+    .map(([block,v])=>({block, avgUV:v.uv/v.days.size, avgPV:v.pv/v.days.size, totalRev:v.rev, src}))
+    .sort((a,b)=>b.avgUV-a.avgUV);
+}
+
+function bnrWS(src, week) {
+  const data=(src==='all') ? CB.all.filter(d=>d.isBanner) : (CB.byBnr[src]||[]);
+  const rows=data.filter(d=>d.week===week);
+  if(!rows.length) return {opCount:0,avgUV:0,avgPV:0};
+  const byDay={};
+  rows.forEach(d=>{
+    const k=d.date.toISOString().slice(0,10);
+    if(!byDay[k]) byDay[k]={uv:0,pv:0};
+    byDay[k].uv+=d.uv; byDay[k].pv+=d.pv;
+  });
+  const dv=Object.values(byDay);
+  return {
+    opCount:[...new Set(rows.map(r=>r.block))].length,
+    avgUV:  dv.reduce((a,d)=>a+d.uv,0)/dv.length,
+    avgPV:  dv.reduce((a,d)=>a+d.pv,0)/dv.length,
+  };
+}
+
+function rT4All() {
+  document.getElementById('t4wl').textContent=CB.weeks[ti4];
+  // 탭 버튼 동적 생성
+  const tbar=document.getElementById('t4tbar');
+  if(tbar) tbar.innerHTML=
+    `<button class="tb${tt4==='all'?' on':''}" onclick="t4tb('all',this)">📊 전체</button>`+
+    BN_RULES.map(r=>`<button class="tb${tt4===r.key?' on':''}" onclick="t4tb('${r.key}',this)">${r.label}</button>`).join('');
+  rT4Sum(); rT4Rank(); rT4Ch();
+}
+
+function t4tb(t,btn) {
+  tt4=t;
+  btn.closest('.tbar').querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  rT4Rank();
+}
+
+function rT4Sum() {
+  const sm={all:{}}; BN_RULES.forEach(r=>{sm[r.key]={};});
+  CB.weeks.forEach(w=>{
+    sm.all[w]=bnrWS('all',w);
+    BN_RULES.forEach(r=>{ sm[r.key][w]=bnrWS(r.key,w); });
+  });
+
+  const secs=[
+    {key:'opCount',label:'운영 수량',isI:true},
+    {key:'avgUV',  label:'일평균 UV'},
+    {key:'avgPV',  label:'일평균 PV'},
+  ];
+
+  const wkDateRange=w=>{
+    const rows=CB.all.filter(d=>d.isBanner&&d.week===w);
+    if(!rows.length) return '';
+    const dates=rows.map(d=>d.date).sort((a,b)=>a-b);
+    const fmt=d=>`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
+    return `(${fmt(dates[0])} ~ ${fmt(dates[dates.length-1])})`;
+  };
+
+  const li=CB.weeks.length-1;
+  const rowspan=BN_RULES.length+1;
+
+  let h=`<thead><tr>
+    <th>구분</th><th>상세</th>
+    ${CB.weeks.map((w,i)=>`<th${i===ti4?' class="sel"':''} style="text-align:right">
+      ${w}<div style="font-size:10px;font-weight:400;opacity:.8;margin-top:2px">${wkDateRange(w)}</div>
+    </th>`).join('')}
+    <th style="text-align:right">WoW</th><th style="text-align:right">WoW(%)</th>
+  </tr></thead><tbody>`;
+
+  secs.forEach(sec=>{
+    const tv=CB.weeks.map(w=>sm.all[w][sec.key]||0);
+    const mkWow=vals=>{
+      const cv=vals[li], pv2=li>0?vals[li-1]:null;
+      const abs=pv2!=null?cv-pv2:null, pct=pv2!=null&&pv2!==0?((cv-pv2)/Math.abs(pv2)*100).toFixed(1):null;
+      return {
+        absH:abs!==null?`<span class="${abs>0?'pos':'neg'}">${abs>0?'+':''}${sec.isI?Math.round(abs).toLocaleString():FC(abs)}</span>`:'-',
+        pctH:pct!==null?`<span class="${WC(pct)}">${WA(pct)}${Math.abs(parseFloat(pct))}%</span>`:'-'
+      };
+    };
+    const {absH:tA,pctH:tP}=mkWow(tv);
+    h+=`<tr class="rh">
+      <td rowspan="${rowspan}" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
+      <td style="font-weight:700">전체</td>
+      ${tv.map((v,i)=>`<td${i===ti4?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
+      <td style="text-align:right">${tA}</td><td style="text-align:right">${tP}</td>
+    </tr>`;
+    BN_RULES.forEach(rule=>{
+      const rv=CB.weeks.map(w=>sm[rule.key][w][sec.key]||0);
+      const {absH,pctH}=mkWow(rv);
+      h+=`<tr>
+        <td style="padding-left:18px;color:${rule.color};font-weight:600">${rule.label}</td>
+        ${rv.map((v,i)=>`<td${i===ti4?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
+        <td style="text-align:right">${absH}</td><td style="text-align:right">${pctH}</td>
+      </tr>`;
+    });
+    h+=`<tr><td colspan="${CB.weeks.length+4}" style="height:6px;background:var(--sf2)"></td></tr>`;
+  });
+  if(document.getElementById('t4s')) document.getElementById('t4s').innerHTML=h+'</tbody>';
+}
+
+function rT4Rank() {
+  const sw=CB.weeks[ti4], pw=ti4>0?CB.weeks[ti4-1]:null;
+  const curr=bnrDA(tt4,sw);
+  const prev=pw?bnrDA(tt4,pw):[];
+  const pm={}; prev.forEach(p=>pm[p.block]=p);
+  const showType=tt4==='all';
+  const cols=showType?9:8;
+  const ruleMap={}; BN_RULES.forEach(r=>ruleMap[r.key]=r);
+
+  let h=`<thead><tr>
+    <th style="width:44px">Rank</th>
+    <th style="text-align:left;min-width:200px">배너명</th>
+    ${showType?'<th style="text-align:center">구분</th>':''}
+    <th>일평균 UV</th><th>일평균 PV</th><th>총 매출</th>
+    <th>UV WoW</th><th>PV WoW</th><th>매출 WoW</th>
+  </tr></thead><tbody>`;
+
+  if(!curr.length) {
+    h+=`<tr><td colspan="${cols}" style="text-align:center;padding:32px;color:var(--t3)">데이터 없음</td></tr>`;
+  } else {
+    curr.forEach((r,i)=>{
+      const p=pm[r.block]; const isN=!p;
+      const uW=isN?'<span class="ntag">NEW</span>':wCell(r.avgUV,p.avgUV);
+      const pW=isN?'<span class="ntag">NEW</span>':wCell(r.avgPV,p.avgPV);
+      const rW=isN?'<span class="ntag">NEW</span>':wCell(r.totalRev,p.totalRev);
+      const bnrKey = CB.all.find(d=>d.block===r.block)?.bnrSrc;
+      const rule=ruleMap[bnrKey]||{color:'#86868b',label:'배너'};
+      const rankBg=i<3?`background:${rule.color}`:'';
+      const typeCol=showType?`<td style="text-align:center;font-size:11px;font-weight:600;color:${rule.color}">${rule.label}</td>`:'';
+      const safeBlock=r.block.replace(/'/g,"\\'");
+      h+=`<tr>
+        <td style="text-align:center"><span class="rb2${i<3?' t3':''}" style="${rankBg}">${i+1}</span></td>
+        <td style="text-align:left"><span class="name-link" onclick="openDetailBlock('${safeBlock}','${bnrKey||'bnr_etc'}')">${r.block}</span></td>
+        ${typeCol}
+        <td>${FC(r.avgUV)}</td><td>${FC(r.avgPV)}</td><td>${N(r.totalRev)}</td>
+        <td>${uW}</td><td>${pW}</td><td>${rW}</td>
+      </tr>`;
+    });
+  }
+  if(document.getElementById('t4r')) document.getElementById('t4r').innerHTML=h+'</tbody>';
+}
+
+function rT4Ch() {
+  mkB('c4c',
+    BN_RULES.map(r=>({label:r.label, data:CB.weeks.map(w=>bnrWS(r.key,w).opCount), backgroundColor:r.color, borderRadius:4})),
+    null, CB.weeks);
+  mkL('c4u',
+    BN_RULES.map(r=>({label:r.label, data:CB.weeks.map(w=>+bnrWS(r.key,w).avgUV.toFixed(1)), borderColor:r.color, tension:.4, pointRadius:3, borderWidth:2, backgroundColor:'transparent'})),
+    o=>{o.scales.y.ticks.callback=v=>v.toLocaleString();}, CB.weeks);
+}
 let detailChartInst = null;
 let detailMetric = 'uv'; // 현재 선택 지표
 
@@ -1725,8 +2058,159 @@ function closeDetail() {
 }
 
 /* ═══════════════════════════════════════
-   INIT — 페이지 열리면 자동 연결
+   관리자 모드 — 블록 분류 규칙 편집
 ═══════════════════════════════════════ */
+const ADMIN_PW = '6659';
+let adminAuthed = false;
+
+function switchAdminTab(tab, btn) {
+  document.querySelectorAll('#ovAdmin .detail-tb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('adm-cb-wrap').style.display = tab==='cb' ? '' : 'none';
+  document.getElementById('adm-bn-wrap').style.display = tab==='bn' ? '' : 'none';
+}
+
+function openAdmin() {
+  if(!adminAuthed) {
+    const pw = prompt('관리자 비밀번호를 입력해주세요:');
+    if(pw !== ADMIN_PW) { alert('비밀번호가 올바르지 않습니다.'); return; }
+    adminAuthed = true;
+  }
+  renderAdminRules();
+  renderAdminBnrRules();
+  document.getElementById('ovAdmin').classList.add('open');
+}
+function closeAdmin() {
+  document.getElementById('ovAdmin').classList.remove('open');
+}
+document.getElementById('ovAdmin').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeAdmin(); });
+
+function renderAdminRules() {
+  const wrap = document.getElementById('admin-rules-wrap');
+  const colors = ['#3B5BDB','#af52de','#059669','#ff9f0a','#ff3b30','#34c759','#0071e3'];
+  wrap.innerHTML = CB_RULES.map((r,i)=>`
+    <div class="admin-rule" id="ar-${i}">
+      <div class="admin-rule-hdr">
+        <div class="admin-color-dot" style="background:${r.color}"></div>
+        <input class="admin-inp admin-rule-name" id="ar-label-${i}" value="${r.label}" placeholder="분류명" style="font-weight:700">
+        <input type="color" value="${r.color}" id="ar-color-${i}" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;border-radius:6px" oninput="document.querySelector('#ar-${i} .admin-color-dot').style.background=this.value">
+        ${i < CB_RULES.length-1 ? `<button class="admin-rule-del" onclick="adminDelRule(${i})">삭제</button>` : '<span style="font-size:11px;color:var(--t3)">기본값</span>'}
+      </div>
+      <div class="admin-rule-grid">
+        <div>
+          <div class="admin-lbl">포함 키워드 (쉼표 구분)</div>
+          <input class="admin-inp" id="ar-inc-${i}" value="${(r.include||[]).join(', ')}" placeholder="RACE, 인기 순위, ...">
+        </div>
+        <div>
+          <div class="admin-lbl">제외 키워드 (쉼표 구분)</div>
+          <input class="admin-inp" id="ar-exc-${i}" value="${(r.exclude||[]).join(', ')}" placeholder="배너, 폴페이지, ...">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function adminAddRule() {
+  // 마지막(기본값) 앞에 새 분류 추가
+  const newRule = { key: `custom_${Date.now()}`, label: '새 분류', color: '#ff9f0a', include: [], exclude: [] };
+  CB_RULES.splice(CB_RULES.length-1, 0, newRule);
+  renderAdminRules();
+}
+
+function adminDelRule(i) {
+  if(CB_RULES.length <= 1) return;
+  CB_RULES.splice(i, 1);
+  renderAdminRules();
+}
+
+function adminResetRules() {
+  if(!confirm('분류 규칙을 초기값으로 되돌릴까요?')) return;
+  CB_RULES = JSON.parse(JSON.stringify(DEFAULT_CB_RULES));
+  saveCbRules();
+  renderAdminRules();
+}
+
+function renderAdminBnrRules() {
+  const wrap=document.getElementById('admin-bnr-wrap');
+  wrap.innerHTML=BN_RULES.map((r,i)=>`
+    <div class="admin-rule" id="abr-${i}">
+      <div class="admin-rule-hdr">
+        <div class="admin-color-dot" style="background:${r.color}"></div>
+        <input class="admin-inp admin-rule-name" id="abr-label-${i}" value="${r.label}" placeholder="배너 분류명" style="font-weight:700">
+        <input type="color" value="${r.color}" id="abr-color-${i}" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;border-radius:6px" oninput="document.querySelector('#abr-${i} .admin-color-dot').style.background=this.value">
+        <button class="admin-rule-del" onclick="adminDelBnrRule(${i})">삭제</button>
+      </div>
+      <div class="admin-rule-grid">
+        <div>
+          <div class="admin-lbl">포함 키워드 (쉼표 구분)</div>
+          <input class="admin-inp" id="abr-inc-${i}" value="${(r.include||[]).join(', ')}" placeholder="띠배너, 롱배너, ...">
+        </div>
+        <div>
+          <div class="admin-lbl">제외 키워드 (쉼표 구분)</div>
+          <input class="admin-inp" id="abr-exc-${i}" value="${(r.exclude||[]).join(', ')}" placeholder="">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function adminAddBnrRule() {
+  BN_RULES.push({ key:`bnr_${Date.now()}`, label:'새 배너', color:'#0071e3', include:[], exclude:[] });
+  renderAdminBnrRules();
+}
+function adminDelBnrRule(i) {
+  BN_RULES.splice(i,1);
+  renderAdminBnrRules();
+}
+function adminResetBnrRules() {
+  if(!confirm('배너 분류 규칙을 초기값으로 되돌릴까요?')) return;
+  BN_RULES=JSON.parse(JSON.stringify(DEFAULT_BN_RULES));
+  saveBnRules();
+  renderAdminBnrRules();
+}
+
+function adminSave() {
+  // 콘텐츠 블록 규칙 저장
+  CB_RULES = CB_RULES.map((r,i)=>{
+    const label=document.getElementById(`ar-label-${i}`)?.value.trim()||r.label;
+    const color=document.getElementById(`ar-color-${i}`)?.value||r.color;
+    const inc=(document.getElementById(`ar-inc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const exc=(document.getElementById(`ar-exc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    return {...r, label, color, include:inc, exclude:exc};
+  });
+  saveCbRules();
+
+  // 배너 규칙 저장
+  BN_RULES = BN_RULES.map((r,i)=>{
+    const label=document.getElementById(`abr-label-${i}`)?.value.trim()||r.label;
+    const color=document.getElementById(`abr-color-${i}`)?.value||r.color;
+    const inc=(document.getElementById(`abr-inc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const exc=(document.getElementById(`abr-exc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    return {...r, label, color, include:inc, exclude:exc};
+  });
+  saveBnRules();
+
+  closeAdmin();
+
+  // 전체 재분류
+  if(CB) {
+    CB.all.forEach(d=>{
+      const bnrKey=classifyBanner(d.block);
+      d.isBanner=!!bnrKey; d.bnrSrc=bnrKey;
+      d.src=bnrKey?'banner':classifyBlock(d.block);
+    });
+    const bySrc={}; CB_RULES.forEach(r=>bySrc[r.key]=[]);
+    const byBnr={}; BN_RULES.forEach(r=>byBnr[r.key]=[]);
+    CB.all.forEach(d=>{
+      if(d.isBanner) { if(byBnr[d.bnrSrc]) byBnr[d.bnrSrc].push(d); }
+      else { if(bySrc[d.src]) bySrc[d.src].push(d); }
+    });
+    CB.bySrc=bySrc; CB.byBnr=byBnr;
+    tt3='all'; tt4='all';
+    renderP3(); renderP4();
+  }
+  alert('분류 규칙이 저장되었습니다!');
+}
 (async () => {
   try {
     const saved = localStorage.getItem('dashCfg');
