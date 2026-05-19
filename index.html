@@ -1083,12 +1083,12 @@ function bda(data, week, type) {
   const map  = {};
   rows.forEach(d => {
     const k=d.banner;
-    if(!map[k]) map[k]={uv:0,pv:0,rev:0,days:new Set()};
+    if(!map[k]) map[k]={uv:0,pv:0,rev:0,days:new Set(),type:d.type};
     map[k].uv+=d.uv; map[k].pv+=d.pv; map[k].rev+=d.rev;
     map[k].days.add(d.date.toISOString().slice(0,10));
   });
   return Object.entries(map)
-    .map(([banner,v])=>({banner, avgUV:v.uv/v.days.size, avgPV:v.pv/v.days.size, avgRev:v.rev/v.days.size}))
+    .map(([banner,v])=>({banner, avgUV:v.uv/v.days.size, avgPV:v.pv/v.days.size, avgRev:v.rev/v.days.size, type:v.type}))
     .sort((a,b)=>b.avgUV-a.avgUV);
 }
 
