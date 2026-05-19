@@ -1734,12 +1734,12 @@ function bnrDA(src, week) {
   const map={};
   rows.forEach(d=>{
     const k=d.block;
-    if(!map[k]) map[k]={uv:0,pv:0,rev:0,days:new Set()};
+    if(!map[k]) map[k]={uv:0,pv:0,rev:0,days:new Set(),bnrSrc:d.bnrSrc};
     map[k].uv+=d.uv; map[k].pv+=d.pv; map[k].rev+=d.rev;
     map[k].days.add(d.date.toISOString().slice(0,10));
   });
   return Object.entries(map)
-    .map(([block,v])=>({block, avgUV:v.uv/v.days.size, avgPV:v.pv/v.days.size, totalRev:v.rev, src}))
+    .map(([block,v])=>({block, avgUV:v.uv/v.days.size, avgPV:v.pv/v.days.size, totalRev:v.rev, src, bnrSrc:v.bnrSrc}))
     .sort((a,b)=>b.avgUV-a.avgUV);
 }
 
@@ -1866,7 +1866,7 @@ function rT4Rank() {
       const uW=isN?'<span class="ntag">NEW</span>':wCell(r.avgUV,p.avgUV);
       const pW=isN?'<span class="ntag">NEW</span>':wCell(r.avgPV,p.avgPV);
       const rW=isN?'<span class="ntag">NEW</span>':wCell(r.totalRev,p.totalRev);
-      const bnrKey = CB.all.find(d=>d.block===r.block)?.bnrSrc;
+      const bnrKey = r.bnrSrc || r.src || 'bnr_etc';
       const rule=ruleMap[bnrKey]||{color:'#86868b',label:'배너'};
       const rankBg=i<3?`background:${rule.color}`:'';
       const typeCol=showType?`<td style="text-align:center;font-size:11px;font-weight:600;color:${rule.color}">${rule.label}</td>`:'';
