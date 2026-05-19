@@ -466,19 +466,18 @@ const CH = {};
 ═══════════════════════════════════════ */
 const DEFAULT_CB_RULES = [
   {
-    key: 'race', label: 'RACE', color: '#3B5BDB',
-    include: ['RACE','인기 순위','AI','import','고객님','어제 가장'],
-    exclude: ['폴페이지']
-  },
-  {
     key: 'my', label: 'MY', color: '#af52de',
-    include: [],
-    exclude: ['RACE','인기 순위','배너','타겟','AI','import','고객님','홀','Today B tv','MY 블록','MY B tv','고객님이 시청 중인 콘텐츠','MY 메뉴 블록','MY 쿠폰','#'],
-    notIn: ['Today B tv','MY 블록','MY B tv','고객님이 시청 중인 콘텐츠','MY 메뉴 블록','MY 쿠폰/포인트','#']
+    include: ['MY 블록','MY B tv','MY 메뉴 블록','MY 쿠폰','마이'],
+    exclude: ['배너','폴페이지']
   },
   {
     key: 'gen', label: '일반', color: '#059669',
-    include: [], exclude: []  // 나머지 전부
+    include: [], exclude: []
+  },
+  {
+    key: 'race', label: 'RACE', color: '#3B5BDB',
+    include: ['RACE','인기 순위','AI 추천','AI맞춤','For you','홈SEG','고객님이 찾아본','고객님께 추천','고객님이 시청','OOO고객님','고객님께','AI ','AI추천','어제 가장'],
+    exclude: ['배너','폴페이지']
   }
 ];
 
@@ -530,19 +529,16 @@ function classifyBanner(blockName) {
 /* 블록명 → 분류 key 반환 */
 function classifyBlock(blockName) {
   const name = blockName || '';
+  const lastKey = CB_RULES[CB_RULES.length - 1]?.key;
   for(const rule of CB_RULES) {
-    if(rule.key === 'gen') return 'gen'; // 마지막은 항상 일반
     const inc = rule.include || [];
     const exc = rule.exclude || [];
-    const notIn = rule.notIn || [];
-    // notIn 조건 (블록명 완전 일치 제외)
-    if(notIn.length && notIn.some(k => name === k)) continue;
-    // exclude 키워드 포함되면 해당 규칙 스킵
+    // 마지막 규칙은 나머지 전부
+    if(rule.key === lastKey) return lastKey;
     if(exc.some(k => name.includes(k))) continue;
-    // include 키워드 하나라도 포함되면 해당 분류
     if(inc.length === 0 || inc.some(k => name.includes(k))) return rule.key;
   }
-  return 'gen';
+  return lastKey || 'gen';
 }
 
 /* ═══════════════════════════════════════
@@ -585,7 +581,7 @@ const FM = n => {
   return Math.round(n).toLocaleString();
 };
 const WOW = (c,p) => (p&&p!==0) ? ((c-p)/Math.abs(p)*100).toFixed(1) : null;
-const WC  = v => { const f=parseFloat(v); return isNaN(f)?'fl':f>0?'up':'dn'; };
+const WC  = v => { const f=parseFloat(v); return isNaN(f)?'fl':f>0?'pos':'neg'; };
 const WA  = v => { const f=parseFloat(v); return isNaN(f)?'–':f>0?'▲':'▼'; };
 const wBadge = (c,p) => {
   const w=WOW(c,p);
