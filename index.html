@@ -438,6 +438,16 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <footer>홈 이용 지표 통합 대시보드 · Sheet ID: 1Btbb6dM9jPTR5B_Ryq2US8v0yoPnjrLpB6ImH6DVCRU · GitHub Pages 배포용</footer>
 
 <script>
+/* ── 버전 체크 — 구버전 localStorage 자동 초기화 ── */
+const _DASH_VER = '2025-05-26-v2';
+try {
+  if(localStorage.getItem('dashVer') !== _DASH_VER) {
+    localStorage.removeItem('cbRules');
+    localStorage.removeItem('bnRules');
+    localStorage.setItem('dashVer', _DASH_VER);
+  }
+} catch(e) {}
+
 /* ═══════════════════════════════════════
    CONFIG — 탭 이름만 여기서 관리
 ═══════════════════════════════════════ */
