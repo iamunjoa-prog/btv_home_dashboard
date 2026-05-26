@@ -439,11 +439,12 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 
 <script>
 /* ── 버전 체크 — 구버전 localStorage 자동 초기화 ── */
-const _DASH_VER = '2025-05-26-v2';
+const _DASH_VER = '2025-05-26-v3';
 try {
   if(localStorage.getItem('dashVer') !== _DASH_VER) {
     localStorage.removeItem('cbRules');
     localStorage.removeItem('bnRules');
+    localStorage.removeItem('dashCfg');
     localStorage.setItem('dashVer', _DASH_VER);
   }
 } catch(e) {}
