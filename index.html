@@ -245,39 +245,27 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 <!-- ════ 관리자 모달 ════ -->
 <div class="ov" id="ovAdmin">
   <div class="modal" style="width:660px;max-height:85vh;overflow-y:auto">
-    <div class="m-ttl">🔧 관리자 모드</div>
-    <div style="display:flex;gap:4px;background:var(--sf2);border-radius:10px;padding:4px;width:fit-content;margin-bottom:16px">
-      <button class="detail-tb on" id="adm-tab-cb" onclick="switchAdminTab('cb',this)">콘텐츠 블록 분류</button>
-      <button class="detail-tb" id="adm-tab-bn" onclick="switchAdminTab('bn',this)">배너 분류</button>
+    <div class="m-ttl">🔧 관리자 모드 — 블록/배너 분류 규칙</div>
+    <div class="m-dsc">분류 규칙은 구글 시트 <strong>대시보드_설정</strong> 탭에서 관리합니다. 시트 수정 후 대시보드를 새로고침하면 모든 사용자에게 즉시 반영됩니다.</div>
+    <div style="background:var(--sf2);border-radius:12px;padding:16px;margin-bottom:16px;font-size:13px;line-height:2">
+      📋 <strong>시트 구조</strong><br>
+      A: 분류유형 (block / banner)<br>
+      B: key (고유값, 영문)<br>
+      C: label (표시명)<br>
+      D: color (색상 코드, 예: #3B5BDB)<br>
+      E: include (포함 키워드, <strong>|</strong> 로 구분)<br>
+      F: exclude (제외 키워드, <strong>|</strong> 로 구분)
     </div>
-
-    <!-- 콘텐츠 블록 규칙 -->
-    <div id="adm-cb-wrap">
-      <div class="m-dsc">블록명에 포함된 키워드 기준으로 분류합니다. 위에서부터 순서대로 적용되며, 마지막 분류가 기본값(나머지 전부)입니다. <strong>배너로 분류된 블록은 여기서 자동 제외됩니다.</strong></div>
-      <div id="admin-rules-wrap"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;margin-bottom:14px">
-        <button class="bsm" onclick="adminAddRule()">+ 분류 추가</button>
-        <button class="bsm" style="color:#ff3b30" onclick="adminResetRules()">초기화</button>
-      </div>
+    <div style="background:var(--sf2);border-radius:12px;padding:16px;margin-bottom:16px;font-size:12px;color:var(--t2);line-height:1.8">
+      💡 <strong>block 분류</strong>: include 있는 규칙 먼저 매칭 → include 없는 규칙이 기본값(나머지 전부)<br>
+      💡 <strong>banner 분류</strong>: include 키워드 매칭 순서대로 적용<br>
+      💡 배너로 분류된 블록은 콘텐츠 블록 실적에서 자동 제외<br>
+      💡 일반 분류 제외 키워드에 걸린 블록 → Today B tv > 하위버전 탭
     </div>
-
-    <!-- 배너 규칙 -->
-    <div id="adm-bn-wrap" style="display:none">
-      <div class="m-dsc">배너로 판별할 블록명 키워드를 설정합니다. 위에서부터 순서대로 적용됩니다. 배너로 분류된 블록은 콘텐츠 블록 실적에서 자동 제외됩니다.</div>
-      <div id="admin-bnr-wrap"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;margin-bottom:14px">
-        <button class="bsm" onclick="adminAddBnrRule()">+ 배너 분류 추가</button>
-        <button class="bsm" style="color:#ff3b30" onclick="adminResetBnrRules()">초기화</button>
-      </div>
-    </div>
-
-    <div style="background:var(--sf2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px">
-      💡 <strong>포함 키워드</strong>: 블록명에 이 단어가 있으면 해당 분류로 지정 (쉼표로 구분)<br>
-      💡 <strong>제외 키워드</strong>: 이 단어가 포함되면 해당 분류에서 제외 (쉼표로 구분)
-    </div>
+    <div id="admin-cur-rules" style="margin-bottom:16px"></div>
     <div class="m-btns">
-      <button class="bsm" onclick="closeAdmin()">취소</button>
-      <button class="bsm pri" onclick="adminSave()">저장 및 재분류</button>
+      <button class="bsm" onclick="closeAdmin()">닫기</button>
+      <button class="bsm pri" onclick="window.open(`https://docs.google.com/spreadsheets/d/${CFG.sid}`)">📊 시트 열기</button>
     </div>
   </div>
 </div>
@@ -347,6 +335,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <button class="tb" onclick="t2tb('mass',this)">📌 Mass</button>
       <button class="tb" onclick="t2tb('target',this)">🎯 Target</button>
       <button class="tb" onclick="t2tb('content',this)">🎬 콘텐츠</button>
+      <button class="tb" onclick="t2tb('excluded',this)">📂 하위버전</button>
     </div>
     <div class="card" style="margin-bottom:12px">
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
@@ -455,10 +444,11 @@ try {
 const DEFAULT_CFG = {
   sid:   '1Btbb6dM9jPTR5B_Ryq2US8v0yoPnjrLpB6ImH6DVCRU',
   tabs: {
-    home:    '홈 전체',
-    tdbEv:   'Today B tv_이벤트타입',
-    tdbCt:   'Today B tv_콘텐츠타입',
-    cbRaw:   '콘텐츠 블록'
+    home:     '홈 전체',
+    tdbEv:    'Today B tv_이벤트타입',
+    tdbCt:    'Today B tv_콘텐츠타입',
+    cbRaw:    '콘텐츠 블록',
+    settings: '대시보드_설정'
   }
 };
 let CFG = JSON.parse(JSON.stringify(DEFAULT_CFG));
@@ -473,58 +463,39 @@ let ti4=0, tt4='all';
 const CH = {};
 
 /* ═══════════════════════════════════════
-   블록 분류 규칙 (관리자 설정)
-   우선순위: RACE → MY → 일반
+   블록/배너 분류 규칙 — 구글 시트에서 로드
+   기본값은 시트 로드 전까지만 사용
 ═══════════════════════════════════════ */
-const DEFAULT_CB_RULES = [
-  {
-    key: 'my', label: 'MY', color: '#af52de',
-    include: ['MY 블록','MY B tv','MY 메뉴 블록','MY 쿠폰','마이'],
-    exclude: ['배너','폴페이지']
-  },
-  {
-    key: 'gen', label: '일반', color: '#059669',
-    include: [], exclude: []
-  },
-  {
-    key: 'race', label: 'RACE', color: '#3B5BDB',
-    include: ['RACE','인기 순위','AI 추천','AI맞춤','For you','홈SEG','고객님이 찾아본','고객님께 추천','고객님이 시청','OOO고객님','고객님께','AI ','AI추천','어제 가장'],
-    exclude: ['배너','폴페이지']
-  }
+let CB_RULES = [
+  { key:'my',          label:'MY',          color:'#af52de', include:['MY 블록','MY B tv','MY 메뉴 블록','MY 쿠폰','마이','고객님이 시청중인'], exclude:['배너','폴페이지'] },
+  { key:'gen',         label:'일반',         color:'#059669', include:[], exclude:['취향이 머니','[히든]','_홈','btv'] },
+  { key:'race_랭킹',   label:'RACE_랭킹',   color:'#ff9f0a', include:['오늘의 인기','어제 가장'], exclude:['배너','폴페이지'] },
+  { key:'race_개인화', label:'RACE_개인화', color:'#3B5BDB', include:['RACE','AI 추천','AI맞춤','For you','홈SEG','고객님이'], exclude:['배너','폴페이지'] }
+];
+let BN_RULES = [
+  { key:'bnr_띠',  label:'띠배너',  color:'#0071e3', include:['띠배너'],           exclude:[] },
+  { key:'bnr_풀',  label:'풀페이지', color:'#af52de', include:['풀페이지','폴페이지'], exclude:[] },
+  { key:'bnr_롱',  label:'롱배너',  color:'#ff9f0a', include:['롱배너'],           exclude:[] },
+  { key:'bnr_메뉴', label:'메뉴블록', color:'#34c759', include:['메뉴블록'],        exclude:[] },
+  { key:'bnr_etc', label:'2단배너', color:'#86868b', include:['2단배너'],          exclude:[] }
 ];
 
-let CB_RULES = loadCbRules();
-
-function loadCbRules() {
-  try {
-    const s = localStorage.getItem('cbRules');
-    return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_CB_RULES));
-  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_CB_RULES)); }
-}
-function saveCbRules() {
-  try { localStorage.setItem('cbRules', JSON.stringify(CB_RULES)); } catch(e) {}
-}
-
-/* ═══════════════════════════════════════
-   배너 분류 규칙 (관리자 설정)
-   배너는 CB_RULES보다 먼저 적용됨
-═══════════════════════════════════════ */
-const DEFAULT_BN_RULES = [
-  { key: 'bnr_띠',  label: '띠배너',  color: '#0071e3', include: ['띠배너'], exclude: [] },
-  { key: 'bnr_풀',  label: '풀페이지', color: '#af52de', include: ['풀페이지','폴페이지'], exclude: [] },
-  { key: 'bnr_롱',  label: '롱배너',  color: '#ff9f0a', include: ['롱배너'], exclude: [] },
-  { key: 'bnr_메뉴', label: '메뉴블록', color: '#34c759', include: ['메뉴블록'], exclude: [] },
-  { key: 'bnr_etc', label: '기타배너', color: '#86868b', include: ['배너'], exclude: [] }
-];
-
-let BN_RULES = loadBnRules();
-
-function loadBnRules() {
-  try { const s=localStorage.getItem('bnRules'); return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT_BN_RULES)); }
-  catch(e) { return JSON.parse(JSON.stringify(DEFAULT_BN_RULES)); }
-}
-function saveBnRules() {
-  try { localStorage.setItem('bnRules', JSON.stringify(BN_RULES)); } catch(e) {}
+/* 설정 시트 CSV 파싱 → CB_RULES / BN_RULES 덮어쓰기 */
+function parseSettingsCSV(csv) {
+  const rows = csvRows(csv);
+  if(!rows.length) return;
+  const cbRules=[], bnRules=[];
+  rows.forEach(row => {
+    const [type, key, label, color, incStr, excStr] = row;
+    if(!type||!key) return;
+    const include = (incStr||'').split('|').map(s=>s.trim()).filter(Boolean);
+    const exclude = (excStr||'').split('|').map(s=>s.trim()).filter(Boolean);
+    const rule = { key:key.trim(), label:label.trim(), color:(color||'').trim(), include, exclude };
+    if(type.trim()==='block')  cbRules.push(rule);
+    if(type.trim()==='banner') bnRules.push(rule);
+  });
+  if(cbRules.length) CB_RULES = cbRules;
+  if(bnRules.length) BN_RULES = bnRules;
 }
 
 /* 블록명 → 배너 key 반환 (없으면 null) */
@@ -540,9 +511,11 @@ function classifyBanner(blockName) {
 
 /* 블록명 → 분류 key 반환
    inc 있는 규칙 → 순서대로 매칭
-   inc 없는 규칙 → 나머지 전부 (기본값, 순서 무관) */
+   inc 없는 규칙 → 나머지 전부 (기본값, 순서 무관)
+   기본값도 exc는 체크함 → exc에 걸리면 다음 기본값으로 */
 function classifyBlock(blockName) {
   const name = blockName || '';
+  // 1pass: include 있는 규칙 매칭
   for(const rule of CB_RULES) {
     const inc = rule.include || [];
     const exc = rule.exclude || [];
@@ -550,8 +523,15 @@ function classifyBlock(blockName) {
     if(exc.some(k => name.includes(k))) continue;
     if(inc.some(k => name.includes(k))) return rule.key;
   }
-  const fallback = CB_RULES.find(r => (r.include||[]).length === 0);
-  return fallback ? fallback.key : CB_RULES[CB_RULES.length-1].key;
+  // 2pass: include 없는 기본값 규칙 — 제외 키워드도 체크
+  for(const rule of CB_RULES) {
+    const inc = rule.include || [];
+    const exc = rule.exclude || [];
+    if(inc.length !== 0) continue;
+    if(exc.some(k => name.includes(k))) return 'excluded'; // 제외 키워드에 걸리면 excluded
+    return rule.key;
+  }
+  return CB_RULES[CB_RULES.length-1].key;
 }
 
 /* ═══════════════════════════════════════
@@ -709,13 +689,17 @@ async function loadAll() {
   });
 
   try {
-    // 4탭 병렬 fetch
-    const [csvHome, csvEv, csvCt, csvRaw] = await Promise.all([
+    // 5탭 병렬 fetch (설정 포함)
+    const [csvHome, csvEv, csvCt, csvRaw, csvSettings] = await Promise.all([
       fetchTab(CFG.tabs.home),
       fetchTab(CFG.tabs.tdbEv),
       fetchTab(CFG.tabs.tdbCt),
       fetchTab(CFG.tabs.cbRaw),
+      fetchTab(CFG.tabs.settings),
     ]);
+
+    // 설정 시트 먼저 파싱 (분류 규칙 적용)
+    parseSettingsCSV(csvSettings);
 
     HD  = parseHomeCSV(csvHome);
     TDB = parseTdbCSV(csvEv, csvCt);
@@ -854,14 +838,18 @@ function parseCbCSV(csvRaw) {
   // P3용: 배너 제외
   const bySrc = {};
   CB_RULES.forEach(r=>bySrc[r.key]=[]);
-  all.filter(d=>!d.isBanner).forEach(d=>{ if(bySrc[d.src]) bySrc[d.src].push(d); });
+  const byExcluded = [];
+  all.filter(d=>!d.isBanner).forEach(d=>{
+    if(d.src === 'excluded') byExcluded.push(d);
+    else if(bySrc[d.src]) bySrc[d.src].push(d);
+  });
 
   // P4용: 배너만
   const byBnr = {};
   BN_RULES.forEach(r=>byBnr[r.key]=[]);
   all.filter(d=>d.isBanner).forEach(d=>{ if(byBnr[d.bnrSrc]) byBnr[d.bnrSrc].push(d); });
 
-  return { all, weeks, bySrc, byBnr };
+  return { all, weeks, bySrc, byBnr, byExcluded };
 }
 
 /* ═══════════════════════════════════════
@@ -1199,10 +1187,32 @@ function rT2Rank() {
   const sw=TDB.weeks[ti2], pw=ti2>0?TDB.weeks[ti2-1]:null;
   const typeFilter = tt2==='all' ? null : tt2;
   const isTarget = tt2==='target';
+  const isExcluded = tt2==='excluded';
 
-  // Target 탭: UV 합계도 계산
-  const curr = bda(TDB.all,sw,typeFilter);
-  const prev  = pw ? bda(TDB.all,pw,typeFilter) : [];
+  // 하위버전 탭: CB.byExcluded 데이터 사용
+  let curr, prev;
+  if(isExcluded) {
+    const cbWeeks = CB?.weeks || [];
+    // CB 데이터를 TDB 주차에 맞게 매핑 (같은 주차 레이블 기준)
+    const exDA = (week) => {
+      const rows = (CB?.byExcluded||[]).filter(d=>d.week===week);
+      const map={};
+      rows.forEach(d=>{
+        const k=d.block;
+        if(!map[k]) map[k]={uv:0,pv:0,rev:0,days:new Set()};
+        map[k].uv+=d.uv; map[k].pv+=d.pv; map[k].rev+=d.rev;
+        map[k].days.add(d.date.toISOString().slice(0,10));
+      });
+      return Object.entries(map)
+        .map(([banner,v])=>({banner, avgUV:v.uv/v.days.size, avgPV:v.pv/v.days.size, avgRev:v.rev/v.days.size, type:'excluded'}))
+        .sort((a,b)=>b.avgUV-a.avgUV);
+    };
+    curr = exDA(sw);
+    prev = pw ? exDA(pw) : [];
+  } else {
+    curr = bda(TDB.all,sw,typeFilter);
+    prev = pw ? bda(TDB.all,pw,typeFilter) : [];
+  }
 
   // 선택 주차 UV 합계 (반응률용)
   const totalUvMap = {};
@@ -1214,8 +1224,8 @@ function rT2Rank() {
 
   const pm={}; prev.forEach(p=>pm[p.banner]=p);
   const showType = tt2==='all';
-  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'};
-  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'};
+  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922', excluded:'#86868b'};
+  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠', excluded:'하위버전'};
   const cols = showType ? 8 : isTarget ? 8 : 7;
 
   let h=`<thead><tr>
@@ -2121,18 +2131,12 @@ function closeDetail() {
   if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
 }
 
+
 /* ═══════════════════════════════════════
-   관리자 모드 — 블록 분류 규칙 편집
+   관리자 모드
 ═══════════════════════════════════════ */
 const ADMIN_PW = '6659';
 let adminAuthed = false;
-
-function switchAdminTab(tab, btn) {
-  document.querySelectorAll('#ovAdmin .detail-tb').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  document.getElementById('adm-cb-wrap').style.display = tab==='cb' ? '' : 'none';
-  document.getElementById('adm-bn-wrap').style.display = tab==='bn' ? '' : 'none';
-}
 
 function openAdmin() {
   if(!adminAuthed) {
@@ -2140,141 +2144,26 @@ function openAdmin() {
     if(pw !== ADMIN_PW) { alert('비밀번호가 올바르지 않습니다.'); return; }
     adminAuthed = true;
   }
-  renderAdminRules();
-  renderAdminBnrRules();
+  const wrap = document.getElementById('admin-cur-rules');
+  if(wrap) {
+    const mkTable = (rules, title) => `
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">${title}</div>
+        <div style="font-size:11px;border:1px solid var(--bd);border-radius:8px;overflow:hidden">
+          ${rules.map(r=>`
+            <div style="display:grid;grid-template-columns:100px 1fr 1fr;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bd);align-items:start">
+              <div style="font-weight:700;color:${r.color}">${r.label}</div>
+              <div style="color:var(--t2)">포함: ${r.include.join(', ')||'-'}</div>
+              <div style="color:var(--t3)">제외: ${r.exclude.join(', ')||'-'}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    wrap.innerHTML = mkTable(CB_RULES,'📦 콘텐츠 블록 분류') + mkTable(BN_RULES,'🎨 배너 분류');
+  }
   document.getElementById('ovAdmin').classList.add('open');
 }
-function closeAdmin() {
-  document.getElementById('ovAdmin').classList.remove('open');
-}
+function closeAdmin() { document.getElementById('ovAdmin').classList.remove('open'); }
 document.getElementById('ovAdmin').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeAdmin(); });
-
-function renderAdminRules() {
-  const wrap = document.getElementById('admin-rules-wrap');
-  const colors = ['#3B5BDB','#af52de','#059669','#ff9f0a','#ff3b30','#34c759','#0071e3'];
-  wrap.innerHTML = CB_RULES.map((r,i)=>`
-    <div class="admin-rule" id="ar-${i}">
-      <div class="admin-rule-hdr">
-        <div class="admin-color-dot" style="background:${r.color}"></div>
-        <input class="admin-inp admin-rule-name" id="ar-label-${i}" value="${r.label}" placeholder="분류명" style="font-weight:700">
-        <input type="color" value="${r.color}" id="ar-color-${i}" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;border-radius:6px" oninput="document.querySelector('#ar-${i} .admin-color-dot').style.background=this.value">
-        ${i < CB_RULES.length-1 ? `<button class="admin-rule-del" onclick="adminDelRule(${i})">삭제</button>` : '<span style="font-size:11px;color:var(--t3)">기본값</span>'}
-      </div>
-      <div class="admin-rule-grid">
-        <div>
-          <div class="admin-lbl">포함 키워드 (쉼표 구분)</div>
-          <input class="admin-inp" id="ar-inc-${i}" value="${(r.include||[]).join(', ')}" placeholder="RACE, 인기 순위, ...">
-        </div>
-        <div>
-          <div class="admin-lbl">제외 키워드 (쉼표 구분)</div>
-          <input class="admin-inp" id="ar-exc-${i}" value="${(r.exclude||[]).join(', ')}" placeholder="배너, 폴페이지, ...">
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function adminAddRule() {
-  // 마지막(기본값) 앞에 새 분류 추가
-  const newRule = { key: `custom_${Date.now()}`, label: '새 분류', color: '#ff9f0a', include: [], exclude: [] };
-  CB_RULES.splice(CB_RULES.length-1, 0, newRule);
-  renderAdminRules();
-}
-
-function adminDelRule(i) {
-  if(CB_RULES.length <= 1) return;
-  CB_RULES.splice(i, 1);
-  renderAdminRules();
-}
-
-function adminResetRules() {
-  if(!confirm('분류 규칙을 초기값으로 되돌릴까요?')) return;
-  CB_RULES = JSON.parse(JSON.stringify(DEFAULT_CB_RULES));
-  saveCbRules();
-  renderAdminRules();
-}
-
-function renderAdminBnrRules() {
-  const wrap=document.getElementById('admin-bnr-wrap');
-  wrap.innerHTML=BN_RULES.map((r,i)=>`
-    <div class="admin-rule" id="abr-${i}">
-      <div class="admin-rule-hdr">
-        <div class="admin-color-dot" style="background:${r.color}"></div>
-        <input class="admin-inp admin-rule-name" id="abr-label-${i}" value="${r.label}" placeholder="배너 분류명" style="font-weight:700">
-        <input type="color" value="${r.color}" id="abr-color-${i}" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;border-radius:6px" oninput="document.querySelector('#abr-${i} .admin-color-dot').style.background=this.value">
-        <button class="admin-rule-del" onclick="adminDelBnrRule(${i})">삭제</button>
-      </div>
-      <div class="admin-rule-grid">
-        <div>
-          <div class="admin-lbl">포함 키워드 (쉼표 구분)</div>
-          <input class="admin-inp" id="abr-inc-${i}" value="${(r.include||[]).join(', ')}" placeholder="띠배너, 롱배너, ...">
-        </div>
-        <div>
-          <div class="admin-lbl">제외 키워드 (쉼표 구분)</div>
-          <input class="admin-inp" id="abr-exc-${i}" value="${(r.exclude||[]).join(', ')}" placeholder="">
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function adminAddBnrRule() {
-  BN_RULES.push({ key:`bnr_${Date.now()}`, label:'새 배너', color:'#0071e3', include:[], exclude:[] });
-  renderAdminBnrRules();
-}
-function adminDelBnrRule(i) {
-  BN_RULES.splice(i,1);
-  renderAdminBnrRules();
-}
-function adminResetBnrRules() {
-  if(!confirm('배너 분류 규칙을 초기값으로 되돌릴까요?')) return;
-  BN_RULES=JSON.parse(JSON.stringify(DEFAULT_BN_RULES));
-  saveBnRules();
-  renderAdminBnrRules();
-}
-
-function adminSave() {
-  // 콘텐츠 블록 규칙 저장
-  CB_RULES = CB_RULES.map((r,i)=>{
-    const label=document.getElementById(`ar-label-${i}`)?.value.trim()||r.label;
-    const color=document.getElementById(`ar-color-${i}`)?.value||r.color;
-    const inc=(document.getElementById(`ar-inc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
-    const exc=(document.getElementById(`ar-exc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
-    return {...r, label, color, include:inc, exclude:exc};
-  });
-  saveCbRules();
-
-  // 배너 규칙 저장
-  BN_RULES = BN_RULES.map((r,i)=>{
-    const label=document.getElementById(`abr-label-${i}`)?.value.trim()||r.label;
-    const color=document.getElementById(`abr-color-${i}`)?.value||r.color;
-    const inc=(document.getElementById(`abr-inc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
-    const exc=(document.getElementById(`abr-exc-${i}`)?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
-    return {...r, label, color, include:inc, exclude:exc};
-  });
-  saveBnRules();
-
-  closeAdmin();
-
-  // 전체 재분류
-  if(CB) {
-    CB.all.forEach(d=>{
-      const bnrKey=classifyBanner(d.block);
-      d.isBanner=!!bnrKey; d.bnrSrc=bnrKey;
-      d.src=bnrKey?'banner':classifyBlock(d.block);
-    });
-    const bySrc={}; CB_RULES.forEach(r=>bySrc[r.key]=[]);
-    const byBnr={}; BN_RULES.forEach(r=>byBnr[r.key]=[]);
-    CB.all.forEach(d=>{
-      if(d.isBanner) { if(byBnr[d.bnrSrc]) byBnr[d.bnrSrc].push(d); }
-      else { if(bySrc[d.src]) bySrc[d.src].push(d); }
-    });
-    CB.bySrc=bySrc; CB.byBnr=byBnr;
-    tt3='all'; tt4='all';
-    renderP3(); renderP4();
-  }
-  alert('분류 규칙이 저장되었습니다!');
-}
 (async () => {
   try {
     const saved = localStorage.getItem('dashCfg');
