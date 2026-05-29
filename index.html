@@ -428,7 +428,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 
 <script>
 /* ── 버전 체크 — 구버전 localStorage 자동 초기화 ── */
-const _DASH_VER = '2025-05-26-v3';
+const _DASH_VER = '2025-05-26-v4';
 try {
   if(localStorage.getItem('dashVer') !== _DASH_VER) {
     localStorage.removeItem('cbRules');
@@ -482,17 +482,20 @@ let BN_RULES = [
 
 /* 설정 시트 CSV 파싱 → CB_RULES / BN_RULES 덮어쓰기 */
 function parseSettingsCSV(csv) {
-  const rows = csvRows(csv);
-  if(!rows.length) return;
+  if(!csv) return;
+  const lines = csv.trim().split('\n').map(parseCSVLine).filter(r=>r&&r.length>=2);
+  if(!lines.length) return;
   const cbRules=[], bnRules=[];
-  rows.forEach(row => {
+  lines.forEach(row => {
     const [type, key, label, color, incStr, excStr] = row;
     if(!type||!key) return;
+    const t = type.trim().toLowerCase();
+    if(t!=='block' && t!=='banner') return; // 헤더 등 스킵
     const include = (incStr||'').split('|').map(s=>s.trim()).filter(Boolean);
     const exclude = (excStr||'').split('|').map(s=>s.trim()).filter(Boolean);
-    const rule = { key:key.trim(), label:label.trim(), color:(color||'').trim(), include, exclude };
-    if(type.trim()==='block')  cbRules.push(rule);
-    if(type.trim()==='banner') bnRules.push(rule);
+    const rule = { key:key.trim(), label:(label||'').trim(), color:(color||'').trim(), include, exclude };
+    if(t==='block')  cbRules.push(rule);
+    if(t==='banner') bnRules.push(rule);
   });
   if(cbRules.length) CB_RULES = cbRules;
   if(bnRules.length) BN_RULES = bnRules;
@@ -695,11 +698,11 @@ async function loadAll() {
       fetchTab(CFG.tabs.tdbEv),
       fetchTab(CFG.tabs.tdbCt),
       fetchTab(CFG.tabs.cbRaw),
-      fetchTab(CFG.tabs.settings),
+      fetchTab(CFG.tabs.settings).catch(()=>null),
     ]);
 
-    // 설정 시트 먼저 파싱 (분류 규칙 적용)
-    parseSettingsCSV(csvSettings);
+    // 설정 시트 먼저 파싱 (분류 규칙 적용) - 실패 시 기본값 유지
+    if(csvSettings) parseSettingsCSV(csvSettings);
 
     HD  = parseHomeCSV(csvHome);
     TDB = parseTdbCSV(csvEv, csvCt);
@@ -1969,28 +1972,47 @@ function rT4Ch() {
 let detailChartInst = null;
 let detailMetric = 'uv'; // 현재 선택 지표
 
+/* 날짜 포맷 M/DD */
+const fmtDay = d => `${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
+
+/* 일별 raw 데이터 추출 공통 함수 */
+function getDailyData(rows) {
+  const map = {};
+  rows.forEach(d => {
+    const k = fmtDay(d.date);
+    if(!map[k]) map[k] = {uv:0, pv:0, rev:0, dateObj:d.date};
+    map[k].uv += d.uv; map[k].pv += d.pv; map[k].rev += d.rev;
+  });
+  return Object.entries(map)
+    .sort((a,b) => a[1].dateObj - b[1].dateObj)
+    .map(([label, v]) => ({label, uv:v.uv, pv:v.pv, rev:v.rev}));
+}
+
 function openDetailBanner(bannerName) {
-  // 타입 먼저 감지
   const anyRow = TDB.all.find(d=>d.banner===bannerName);
   const bannerType = anyRow?.type || null;
   const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'}[bannerType] || '';
   const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'}[bannerType] || 'var(--t2)';
 
-  // 전 주차에 걸친 해당 배너 일평균 데이터 수집 (타입 고정 조회)
-  const weeks = TDB.weeks;
-  const uvData  = weeks.map(w => { const r = bda(TDB.all, w, bannerType).find(x=>x.banner===bannerName); return r ? r.avgUV  : null; });
-  const pvData  = weeks.map(w => { const r = bda(TDB.all, w, bannerType).find(x=>x.banner===bannerName); return r ? r.avgPV  : null; });
-  const revData = weeks.map(w => { const r = bda(TDB.all, w, bannerType).find(x=>x.banner===bannerName); return r ? r.avgRev : null; });
+  // 일별 데이터
+  const rows = TDB.all.filter(d=>d.banner===bannerName && d.type===bannerType);
+  const daily = getDailyData(rows);
+  const labels  = daily.map(d=>d.label);
+  const uvData  = daily.map(d=>d.uv);
+  const pvData  = daily.map(d=>d.pv);
+  const revData = daily.map(d=>d.rev);
 
-  // 최신 주차 KPI
-  const latestIdx = uvData.reduce((acc,v,i)=>v!==null?i:acc, -1);
-  const kpiUV  = latestIdx>=0 ? uvData[latestIdx]  : null;
-  const kpiPV  = latestIdx>=0 ? pvData[latestIdx]  : null;
-  const kpiRev = latestIdx>=0 ? revData[latestIdx] : null;
+  // 최근 주차 KPI (기존 유지)
+  const weeks = TDB.weeks;
+  const latestW = weeks[weeks.length-1];
+  const latestR = bda(TDB.all, latestW, bannerType).find(x=>x.banner===bannerName);
+  const kpiUV  = latestR ? latestR.avgUV  : null;
+  const kpiPV  = latestR ? latestR.avgPV  : null;
+  const kpiRev = latestR ? latestR.avgRev : null;
 
   document.getElementById('detailTitle').textContent = bannerName;
   document.getElementById('detailSub').innerHTML =
-    `<span style="color:${typeColor};font-weight:600">${typeLabel}</span>　주차별 일평균 실적 추이`;
+    `<span style="color:${typeColor};font-weight:600">${typeLabel}</span>　일별 실적 추이`;
   document.getElementById('detailKpi').innerHTML = [
     {l:'최근 일평균 UV',   v: kpiUV!==null  ? FC(kpiUV)  : '-'},
     {l:'최근 일평균 PV',   v: kpiPV!==null  ? FC(kpiPV)  : '-'},
@@ -1998,70 +2020,40 @@ function openDetailBanner(bannerName) {
   ].map(k=>`<div class="detail-kpi"><div class="kl">${k.l}</div><div class="kv">${k.v}</div></div>`).join('');
 
   document.getElementById('detailOv').classList.add('open');
-  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBannerChart(bannerName, weeks, uvData, pvData, revData, m));
-  drawDetailBannerChart(bannerName, weeks, uvData, pvData, revData, 'uv');
-}
-
-function drawDetailBannerChart(name, weeks, uvData, pvData, revData, metric) {
-  const map = {
-    uv:  {d:uvData,  c:'#0071e3', bg:'rgba(0,113,227,.1)',  l:'일평균 UV'},
-    pv:  {d:pvData,  c:'#34c759', bg:'rgba(52,199,89,.1)',  l:'일평균 PV'},
-    rev: {d:revData, c:'#ff9f0a', bg:'rgba(255,159,10,.1)', l:'일평균 매출'}
-  };
-  const {d, c, bg, l} = map[metric];
-  const el = document.getElementById('detailChart');
-  if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
-  setTimeout(()=>{
-    detailChartInst = new Chart(el.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: weeks,
-        datasets: [{
-          label: l, data: d,
-          borderColor: c, backgroundColor: bg,
-          fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
-          spanGaps: true
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        interaction: {mode:'index', intersect:false},
-        plugins: {
-          legend: {display:false},
-          tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
-        },
-        scales: {
-          x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
-          y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
-              ticks:{font:{size:10},color:'#86868b', callback: v => FM(v)}}
-        }
-      }
-    });
-  }, 50);
+  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailChart('#0071e3', labels, uvData, pvData, revData, m));
+  drawDetailChart('#0071e3', labels, uvData, pvData, revData, 'uv');
 }
 
 function openDetailBlock(blockName, src) {
-  const weeks = CB.weeks;
-
-  // 배너 src인지 콘텐츠 블록 src인지 구분
   const isBnr = src && src.startsWith('bnr_');
   const bnrRule = isBnr ? BN_RULES.find(r=>r.key===src) : null;
   const cbRule  = !isBnr ? CB_RULES.find(r=>r.key===src) : null;
   const typeLabel = bnrRule ? bnrRule.label : (cbRule ? cbRule.label : src);
   const typeColor = bnrRule ? bnrRule.color : (cbRule ? cbRule.color : '#86868b');
 
-  const uvData  = weeks.map(w => { const r = isBnr ? bnrDA(src,w).find(x=>x.block===blockName) : blkDA(src,w).find(x=>x.block===blockName); return r ? r.avgUV    : null; });
-  const pvData  = weeks.map(w => { const r = isBnr ? bnrDA(src,w).find(x=>x.block===blockName) : blkDA(src,w).find(x=>x.block===blockName); return r ? r.avgPV    : null; });
-  const revData = weeks.map(w => { const r = isBnr ? bnrDA(src,w).find(x=>x.block===blockName) : blkDA(src,w).find(x=>x.block===blockName); return r ? r.totalRev : null; });
+  // 일별 데이터
+  const allRows = isBnr
+    ? (CB.byBnr[src]||[]).filter(d=>d.block===blockName)
+    : (CB.bySrc[src]||CB.byExcluded||[]).filter(d=>d.block===blockName);
+  const daily = getDailyData(allRows);
+  const labels  = daily.map(d=>d.label);
+  const uvData  = daily.map(d=>d.uv);
+  const pvData  = daily.map(d=>d.pv);
+  const revData = daily.map(d=>d.rev);
 
-  const latestIdx = uvData.reduce((acc,v,i)=>v!==null?i:acc, -1);
-  const kpiUV  = latestIdx>=0 ? uvData[latestIdx]  : null;
-  const kpiPV  = latestIdx>=0 ? pvData[latestIdx]  : null;
-  const kpiRev = latestIdx>=0 ? revData[latestIdx] : null;
+  // 최근 주차 KPI
+  const weeks = CB.weeks;
+  const latestW = weeks[weeks.length-1];
+  const latestR = isBnr
+    ? bnrDA(src, latestW).find(x=>x.block===blockName)
+    : blkDA(src, latestW).find(x=>x.block===blockName);
+  const kpiUV  = latestR ? latestR.avgUV   : null;
+  const kpiPV  = latestR ? latestR.avgPV   : null;
+  const kpiRev = latestR ? latestR.totalRev: null;
 
   document.getElementById('detailTitle').textContent = blockName;
   document.getElementById('detailSub').innerHTML =
-    `<span style="color:${typeColor};font-weight:600">${typeLabel}</span>　주차별 실적 추이`;
+    `<span style="color:${typeColor};font-weight:600">${typeLabel}</span>　일별 실적 추이`;
   document.getElementById('detailKpi').innerHTML = [
     {l:'최근 일평균 UV', v: kpiUV!==null  ? FC(kpiUV)  : '-'},
     {l:'최근 일평균 PV', v: kpiPV!==null  ? FC(kpiPV)  : '-'},
@@ -2069,29 +2061,32 @@ function openDetailBlock(blockName, src) {
   ].map(k=>`<div class="detail-kpi"><div class="kl">${k.l}</div><div class="kv">${k.v}</div></div>`).join('');
 
   document.getElementById('detailOv').classList.add('open');
-  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailBlockChart(blockName, src, typeColor, weeks, uvData, pvData, revData, m));
-  drawDetailBlockChart(blockName, src, typeColor, weeks, uvData, pvData, revData, 'uv');
+  renderDetailTab(['UV','PV','매출'], ['uv','pv','rev'], m => drawDetailChart(typeColor, labels, uvData, pvData, revData, m));
+  drawDetailChart(typeColor, labels, uvData, pvData, revData, 'uv');
 }
 
-function drawDetailBlockChart(name, src, typeColor, weeks, uvData, pvData, revData, metric) {
-  const typeBg = typeColor + '22';
+/* 공통 일별 차트 */
+function drawDetailChart(baseColor, labels, uvData, pvData, revData, metric) {
+  const bg = baseColor + '22';
   const map = {
-    uv:  {d:uvData,  c:typeColor, bg:typeBg,                  l:'일평균 UV'},
-    pv:  {d:pvData,  c:'#34c759', bg:'rgba(52,199,89,.1)',     l:'일평균 PV'},
-    rev: {d:revData, c:'#ff9f0a', bg:'rgba(255,159,10,.1)',    l:'총 매출'}
+    uv:  {d:uvData,  c:baseColor,  bg,                          l:'UV'},
+    pv:  {d:pvData,  c:'#34c759',  bg:'rgba(52,199,89,.15)',     l:'PV'},
+    rev: {d:revData, c:'#ff9f0a',  bg:'rgba(255,159,10,.15)',    l:'매출'}
   };
-  const {d, c, bg, l} = map[metric];
+  const {d, c, bg:bgC, l} = map[metric];
   const el = document.getElementById('detailChart');
   if(detailChartInst) { detailChartInst.destroy(); detailChartInst=null; }
   setTimeout(()=>{
     detailChartInst = new Chart(el.getContext('2d'), {
       type: 'line',
       data: {
-        labels: weeks,
+        labels,
         datasets: [{
           label: l, data: d,
-          borderColor: c, backgroundColor: bg,
-          fill: true, tension: .4, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2,
+          borderColor: c, backgroundColor: bgC,
+          fill: true, tension: .4,
+          pointRadius: labels.length > 60 ? 0 : 3,
+          pointHoverRadius: 5, borderWidth: 2,
           spanGaps: true
         }]
       },
@@ -2100,12 +2095,14 @@ function drawDetailBlockChart(name, src, typeColor, weeks, uvData, pvData, revDa
         interaction: {mode:'index', intersect:false},
         plugins: {
           legend: {display:false},
-          tooltip: {padding:10, cornerRadius:8, callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
+          tooltip: {padding:10, cornerRadius:8,
+            callbacks:{label: ctx => ` ${l}: ${metric==='rev'?NC(ctx.parsed.y):FC(ctx.parsed.y)}`}}
         },
         scales: {
-          x: {grid:{display:false}, ticks:{font:{size:10},color:'#86868b'}},
+          x: {grid:{display:false}, ticks:{font:{size:9}, color:'#86868b',
+            maxTicksLimit: 20, maxRotation: 45}},
           y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
-              ticks:{font:{size:10},color:'#86868b', callback: v => FM(v)}}
+              ticks:{font:{size:10}, color:'#86868b', callback: v => FM(v)}}
         }
       }
     });
