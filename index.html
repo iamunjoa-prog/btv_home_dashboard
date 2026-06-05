@@ -181,6 +181,8 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 .name-link{color:var(--blue);cursor:pointer;font-weight:600;text-decoration:none;border-bottom:1px dashed rgba(0,113,227,.35);transition:border-color .15s}
 .name-link:hover{border-bottom-color:var(--blue)}
 
+#bnr-search-inp:focus{border-color:var(--blue)!important;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+
 .admin-rule{background:var(--sf2);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--bd)}
 .admin-rule-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .admin-rule-name{font-size:13px;font-weight:700;flex:1}
@@ -349,6 +351,36 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c2c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2c','운영수량추이')">📷 저장</button></div>
       <div class="card chart-wrap"><div class="cft">평균 UV 추이</div><canvas id="c2a" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c2a','평균UV추이')">📷 저장</button></div>
     </div>
+
+    <!-- ④ 배너별 이용 Data -->
+    <div class="sec" style="justify-content:space-between">
+      <span>④ 배너별 이용 Data <span class="sec-b">게시기간 전체 일평균 기준</span></span>
+      <button class="bsm" id="btn-bnr-all-dl" onclick="downloadAllBannerAvg()">⬇ 전체 배너 일평균 엑셀</button>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <!-- 검색/선택 UI -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="position:relative;flex:1;min-width:200px;max-width:400px">
+          <input id="bnr-search-inp" type="text" placeholder="배너명 검색 또는 선택..." autocomplete="off"
+            style="width:100%;padding:8px 36px 8px 12px;border:1px solid var(--bd);border-radius:9px;font-size:13px;font-family:inherit;color:var(--t1);background:var(--sf2);outline:none;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--blue)';showBnrDropdown()"
+            oninput="filterBnrList(this.value)"
+            onblur="setTimeout(()=>hideBnrDropdown(),180)"
+          >
+          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:13px;pointer-events:none">▾</span>
+          <div id="bnr-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;z-index:200;font-size:12px"></div>
+        </div>
+        <div id="bnr-type-badge" style="display:none;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(0,113,227,.08);color:var(--blue)"></div>
+        <button class="bsm" onclick="clearBnrSelect()" style="white-space:nowrap">✕ 초기화</button>
+      </div>
+
+      <!-- 선택 배너 결과 -->
+      <div id="bnr-detail-area">
+        <div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">
+          배너를 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -406,6 +438,35 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     <div class="cg2">
       <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c4c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c4c','배너_운영수량추이')">📷 저장</button></div>
       <div class="card chart-wrap"><div class="cft">일평균 UV 추이</div><canvas id="c4u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c4u','배너_UV추이')">📷 저장</button></div>
+    </div>
+
+    <!-- ④ 배너별 이용 Data -->
+    <div class="sec" style="justify-content:space-between">
+      <span>④ 배너별 이용 Data <span class="sec-b">게시기간 전체 일평균 기준</span></span>
+      <button class="bsm" onclick="downloadAllP4BannerAvg()">⬇ 전체 배너 일평균 엑셀</button>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <!-- 검색/선택 UI -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="position:relative;flex:1;min-width:200px;max-width:400px">
+          <input id="p4-bnr-search-inp" type="text" placeholder="배너명 검색 또는 선택..." autocomplete="off"
+            style="width:100%;padding:8px 36px 8px 12px;border:1px solid var(--bd);border-radius:9px;font-size:13px;font-family:inherit;color:var(--t1);background:var(--sf2);outline:none;transition:border-color .15s;box-sizing:border-box"
+            onfocus="this.style.borderColor='var(--blue)';showP4BnrDropdown()"
+            oninput="filterP4BnrList(this.value)"
+            onblur="setTimeout(()=>hideP4BnrDropdown(),180)"
+          >
+          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:13px;pointer-events:none">▾</span>
+          <div id="p4-bnr-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;z-index:200;font-size:12px"></div>
+        </div>
+        <div id="p4-bnr-type-badge" style="display:none;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(0,113,227,.08);color:var(--blue)"></div>
+        <button class="bsm" onclick="clearP4BnrSelect()">✕ 초기화</button>
+      </div>
+      <!-- 선택 배너 결과 -->
+      <div id="p4-bnr-detail-area">
+        <div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">
+          배너를 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2161,6 +2222,401 @@ function openAdmin() {
 }
 function closeAdmin() { document.getElementById('ovAdmin').classList.remove('open'); }
 document.getElementById('ovAdmin').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeAdmin(); });
+
+/* ═══════════════════════════════════════
+   ④ 배너별 이용 Data (P2 섹션)
+   TDB.all 전체 기간 일평균 집계
+═══════════════════════════════════════ */
+
+/* 전체 배너 목록 + 기간 전체 일평균 집계 */
+function getAllBannerAvgData() {
+  if(!TDB||!TDB.all.length) return [];
+  const map = {};
+  TDB.all.forEach(d => {
+    const k = d.banner;
+    if(!map[k]) map[k] = {uv:0, pv:0, rev:0, days:new Set(), type:d.type};
+    map[k].uv  += d.uv;
+    map[k].pv  += d.pv;
+    map[k].rev += d.rev;
+    map[k].days.add(d.date.toISOString().slice(0,10));
+  });
+  return Object.entries(map).map(([banner, v]) => {
+    const days = [...v.days].sort();
+    return {
+      banner,
+      type: v.type,
+      startDate: days[0],
+      endDate:   days[days.length-1],
+      dayCount:  v.days.size,
+      avgUV:     v.uv  / v.days.size,
+      avgPV:     v.pv  / v.days.size,
+      avgRev:    v.rev / v.days.size,
+    };
+  }).sort((a,b) => b.avgUV - a.avgUV);
+}
+
+/* 드롭다운 표시 */
+function showBnrDropdown() {
+  filterBnrList(document.getElementById('bnr-search-inp').value);
+}
+function hideBnrDropdown() {
+  const dd = document.getElementById('bnr-dropdown');
+  if(dd) dd.style.display='none';
+}
+
+function filterBnrList(q) {
+  const dd = document.getElementById('bnr-dropdown');
+  if(!dd||!TDB) return;
+  const all = getAllBannerAvgData();
+  const filtered = q ? all.filter(r=>r.banner.toLowerCase().includes(q.toLowerCase())) : all;
+  if(!filtered.length) { dd.style.display='none'; return; }
+  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'};
+  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'};
+  dd.innerHTML = filtered.slice(0,80).map(r =>
+    `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.04);transition:background .1s;display:flex;align-items:center;gap:8px"
+      onmousedown="selectBanner('${r.banner.replace(/'/g,"\\'")}');"
+      onmouseover="this.style.background='var(--sf2)'"
+      onmouseout="this.style.background=''">
+      <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;background:${typeColor[r.type]||'#86868b'}22;color:${typeColor[r.type]||'#86868b'};flex-shrink:0">${typeLabel[r.type]||r.type}</span>
+      <span style="flex:1;font-size:12px;color:var(--t1)">${r.banner}</span>
+      <span style="font-size:11px;color:var(--t3);flex-shrink:0">${r.dayCount}일</span>
+    </div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function selectBanner(bannerName) {
+  const inp = document.getElementById('bnr-search-inp');
+  if(inp) inp.value = bannerName;
+  hideBnrDropdown();
+  renderBnrDetail(bannerName);
+}
+
+function clearBnrSelect() {
+  const inp = document.getElementById('bnr-search-inp');
+  if(inp) inp.value = '';
+  hideBnrDropdown();
+  const area = document.getElementById('bnr-detail-area');
+  if(area) area.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.</div>`;
+  const badge = document.getElementById('bnr-type-badge');
+  if(badge) badge.style.display='none';
+}
+
+/* 선택 배너 상세 렌더 */
+function renderBnrDetail(bannerName) {
+  const area = document.getElementById('bnr-detail-area');
+  if(!area||!TDB) return;
+
+  const all = getAllBannerAvgData();
+  const r = all.find(x=>x.banner===bannerName);
+  if(!r) { area.innerHTML=`<div style="color:var(--t3);padding:20px;text-align:center">데이터 없음</div>`; return; }
+
+  const typeColor = {mass:'#378ADD', target:'#E24B4A', content:'#639922'};
+  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'};
+  const tc = typeColor[r.type]||'#86868b';
+  const tl = typeLabel[r.type]||r.type;
+
+  // 타입 뱃지
+  const badge = document.getElementById('bnr-type-badge');
+  if(badge) { badge.textContent=tl; badge.style.background=tc+'18'; badge.style.color=tc; badge.style.display=''; }
+
+  // 날짜 포맷
+  const fmtD = s => { if(!s) return '-'; const p=s.split('-'); return `${+p[1]}/${+p[2]}`; };
+  const period = `${fmtD(r.startDate)} ~ ${fmtD(r.endDate)} (${r.dayCount}일)`;
+
+  // 주차별 데이터 추출 (세로로 표시)
+  const weekRows = TDB.weeks.map(w => {
+    const rows = TDB.all.filter(d=>d.banner===bannerName && d.week===w);
+    if(!rows.length) return null;
+    const days = new Set(rows.map(d=>d.date.toISOString().slice(0,10)));
+    const uv  = rows.reduce((s,d)=>s+d.uv,0)  / days.size;
+    const pv  = rows.reduce((s,d)=>s+d.pv,0)  / days.size;
+    const rev = rows.reduce((s,d)=>s+d.rev,0) / days.size;
+    // 날짜 범위
+    const sorted = rows.map(d=>d.date).sort((a,b)=>a-b);
+    const wFmt = d=>`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
+    const dateRange = `${wFmt(sorted[0])}~${wFmt(sorted[sorted.length-1])}`;
+    return {week:w, dateRange, days:days.size, avgUV:uv, avgPV:pv, avgRev:rev};
+  }).filter(Boolean);
+
+  area.innerHTML = `
+    <!-- KPI 카드 3개 -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      ${[
+        {l:'게시기간 일평균 UV',  v:FC(r.avgUV),  c:tc},
+        {l:'게시기간 일평균 PV',  v:FC(r.avgPV),  c:'#34c759'},
+        {l:'게시기간 일평균 매출', v:NC(r.avgRev), c:'#ff9f0a'},
+      ].map(k=>`
+        <div style="background:var(--sf2);border-radius:12px;padding:14px 16px;border:1px solid var(--bd);border-top:3px solid ${k.c}">
+          <div class="kl" style="margin-bottom:5px">${k.l}</div>
+          <div class="kv" style="font-size:20px;color:${k.c}">${k.v}</div>
+        </div>`).join('')}
+    </div>
+    <!-- 게시기간 안내 -->
+    <div style="font-size:12px;color:var(--t3);margin-bottom:12px;padding:8px 12px;background:var(--sf2);border-radius:8px;border:1px solid var(--bd)">
+      📅 데이터 조회 기간 <strong style="color:var(--t1)">${period}</strong>　|　타입 <strong style="color:${tc}">${tl}</strong>
+    </div>
+    <!-- 주차별 상세표 -->
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">주차별 일평균 상세</div>
+    <div class="tw">
+      <table id="tbl-bnr-detail">
+        <thead><tr>
+          <th style="text-align:left;min-width:100px">주차</th>
+          <th style="text-align:left;min-width:110px">날짜 범위</th>
+          <th>운영일수</th>
+          <th class="sel">일평균 UV</th>
+          <th>일평균 PV</th>
+          <th>일평균 매출</th>
+        </tr></thead>
+        <tbody>
+          ${weekRows.map((w,i)=>`
+            <tr${i===weekRows.length-1?' style="font-weight:700"':''}>
+              <td style="text-align:left">${w.week}</td>
+              <td style="text-align:left;font-size:11px;color:var(--t3)">${w.dateRange}</td>
+              <td>${w.days}일</td>
+              <td class="sc">${FC(w.avgUV)}</td>
+              <td>${FC(w.avgPV)}</td>
+              <td>${NC(w.avgRev)}</td>
+            </tr>`).join('')}
+          <!-- 전체 평균 합산 행 -->
+          <tr style="background:rgba(0,113,227,.04);font-weight:700;border-top:2px solid var(--blue)">
+            <td style="text-align:left;color:var(--blue)">전체 평균</td>
+            <td style="text-align:left;font-size:11px;color:var(--t3)">${fmtD(r.startDate)} ~ ${fmtD(r.endDate)}</td>
+            <td>${r.dayCount}일</td>
+            <td style="color:var(--blue)">${FC(r.avgUV)}</td>
+            <td>${FC(r.avgPV)}</td>
+            <td>${NC(r.avgRev)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* 전체 배너 일평균 엑셀 다운로드 */
+function downloadAllBannerAvg() {
+  if(!TDB||!TDB.all.length) { alert('데이터가 로드되지 않았습니다.'); return; }
+  const data = getAllBannerAvgData();
+  const typeLabel = {mass:'Mass', target:'Target', content:'콘텐츠'};
+
+  // 헤더
+  let csv = '\uFEFF배너명,타입,게시기간(시작),게시기간(종료),데이터 일수(일),일평균 UV,일평균 PV,일평균 매출\n';
+  data.forEach(r => {
+    const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+    csv += [
+      esc(r.banner),
+      esc(typeLabel[r.type]||r.type),
+      esc(r.startDate),
+      esc(r.endDate),
+      r.dayCount,
+      r.avgUV.toFixed(1),
+      r.avgPV.toFixed(1),
+      r.avgRev.toFixed(0),
+    ].join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `TDB_배너별_일평균_전체_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════
+   ④ 배너별 이용 Data (P4 배너 이용 현황)
+   CB.byBnr / CB.all(isBanner) 기반 전체 기간 일평균
+═══════════════════════════════════════ */
+
+/* P4용 전체 배너 집계 — CB.all isBanner 기반 */
+function getAllP4BannerAvgData() {
+  if(!CB||!CB.all) return [];
+  const map = {};
+  CB.all.filter(d=>d.isBanner).forEach(d => {
+    const k = d.block;
+    if(!map[k]) map[k] = {uv:0, pv:0, rev:0, days:new Set(), bnrSrc:d.bnrSrc};
+    map[k].uv  += d.uv;
+    map[k].pv  += d.pv;
+    map[k].rev += d.rev;
+    map[k].days.add(d.date.toISOString().slice(0,10));
+  });
+  return Object.entries(map).map(([block, v]) => {
+    const days = [...v.days].sort();
+    return {
+      block,
+      bnrSrc:    v.bnrSrc,
+      startDate: days[0],
+      endDate:   days[days.length-1],
+      dayCount:  v.days.size,
+      avgUV:     v.uv  / v.days.size,
+      avgPV:     v.pv  / v.days.size,
+      avgRev:    v.rev / v.days.size,
+    };
+  }).sort((a,b) => b.avgUV - a.avgUV);
+}
+
+function showP4BnrDropdown() {
+  filterP4BnrList(document.getElementById('p4-bnr-search-inp').value);
+}
+function hideP4BnrDropdown() {
+  const dd = document.getElementById('p4-bnr-dropdown');
+  if(dd) dd.style.display='none';
+}
+
+function filterP4BnrList(q) {
+  const dd = document.getElementById('p4-bnr-dropdown');
+  if(!dd||!CB) return;
+  const all = getAllP4BannerAvgData();
+  const filtered = q ? all.filter(r=>r.block.toLowerCase().includes(q.toLowerCase())) : all;
+  if(!filtered.length) { dd.style.display='none'; return; }
+  const ruleMap = {}; BN_RULES.forEach(r=>ruleMap[r.key]=r);
+  dd.innerHTML = filtered.slice(0,80).map(r => {
+    const rule = ruleMap[r.bnrSrc] || {color:'#86868b', label:'배너'};
+    return `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.04);transition:background .1s;display:flex;align-items:center;gap:8px"
+      onmousedown="selectP4Banner('${r.block.replace(/'/g,"\\'")}');"
+      onmouseover="this.style.background='var(--sf2)'"
+      onmouseout="this.style.background=''">
+      <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;background:${rule.color}22;color:${rule.color};flex-shrink:0">${rule.label}</span>
+      <span style="flex:1;font-size:12px;color:var(--t1)">${r.block}</span>
+      <span style="font-size:11px;color:var(--t3);flex-shrink:0">${r.dayCount}일</span>
+    </div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+
+function selectP4Banner(blockName) {
+  const inp = document.getElementById('p4-bnr-search-inp');
+  if(inp) inp.value = blockName;
+  hideP4BnrDropdown();
+  renderP4BnrDetail(blockName);
+}
+
+function clearP4BnrSelect() {
+  const inp = document.getElementById('p4-bnr-search-inp');
+  if(inp) inp.value = '';
+  hideP4BnrDropdown();
+  const area = document.getElementById('p4-bnr-detail-area');
+  if(area) area.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.</div>`;
+  const badge = document.getElementById('p4-bnr-type-badge');
+  if(badge) badge.style.display='none';
+}
+
+function renderP4BnrDetail(blockName) {
+  const area = document.getElementById('p4-bnr-detail-area');
+  if(!area||!CB) return;
+
+  const all = getAllP4BannerAvgData();
+  const r = all.find(x=>x.block===blockName);
+  if(!r) { area.innerHTML=`<div style="color:var(--t3);padding:20px;text-align:center">데이터 없음</div>`; return; }
+
+  const ruleMap = {}; BN_RULES.forEach(ru=>ruleMap[ru.key]=ru);
+  const rule = ruleMap[r.bnrSrc] || {color:'#86868b', label:'배너'};
+  const tc = rule.color;
+  const tl = rule.label;
+
+  // 타입 뱃지 업데이트
+  const badge = document.getElementById('p4-bnr-type-badge');
+  if(badge) { badge.textContent=tl; badge.style.background=tc+'18'; badge.style.color=tc; badge.style.display=''; }
+
+  const fmtD = s => { if(!s) return '-'; const p=s.split('-'); return `${+p[1]}/${+p[2]}`; };
+  const period = `${fmtD(r.startDate)} ~ ${fmtD(r.endDate)} (${r.dayCount}일)`;
+
+  // 주차별 집계 (CB.all 기반)
+  const weekRows = CB.weeks.map(w => {
+    const rows = CB.all.filter(d=>d.isBanner && d.block===blockName && d.week===w);
+    if(!rows.length) return null;
+    const days = new Set(rows.map(d=>d.date.toISOString().slice(0,10)));
+    const uv  = rows.reduce((s,d)=>s+d.uv,0)  / days.size;
+    const pv  = rows.reduce((s,d)=>s+d.pv,0)  / days.size;
+    const rev = rows.reduce((s,d)=>s+d.rev,0) / days.size;
+    const sorted = rows.map(d=>d.date).sort((a,b)=>a-b);
+    const wFmt = d=>`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
+    return {week:w, dateRange:`${wFmt(sorted[0])}~${wFmt(sorted[sorted.length-1])}`, days:days.size, avgUV:uv, avgPV:pv, avgRev:rev};
+  }).filter(Boolean);
+
+  area.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      ${[
+        {l:'게시기간 일평균 UV',   v:FC(r.avgUV),  c:tc},
+        {l:'게시기간 일평균 PV',   v:FC(r.avgPV),  c:'#34c759'},
+        {l:'게시기간 일평균 매출', v:NC(r.avgRev), c:'#ff9f0a'},
+      ].map(k=>`
+        <div style="background:var(--sf2);border-radius:12px;padding:14px 16px;border:1px solid var(--bd);border-top:3px solid ${k.c}">
+          <div class="kl" style="margin-bottom:5px">${k.l}</div>
+          <div class="kv" style="font-size:20px;color:${k.c}">${k.v}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:12px;padding:8px 12px;background:var(--sf2);border-radius:8px;border:1px solid var(--bd)">
+      📅 데이터 조회 기간 <strong style="color:var(--t1)">${period}</strong>　|　배너 유형 <strong style="color:${tc}">${tl}</strong>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">주차별 일평균 상세</div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th style="text-align:left;min-width:100px">주차</th>
+          <th style="text-align:left;min-width:110px">날짜 범위</th>
+          <th>운영일수</th>
+          <th class="sel">일평균 UV</th>
+          <th>일평균 PV</th>
+          <th>일평균 매출</th>
+        </tr></thead>
+        <tbody>
+          ${weekRows.map(w=>`
+            <tr>
+              <td style="text-align:left">${w.week}</td>
+              <td style="text-align:left;font-size:11px;color:var(--t3)">${w.dateRange}</td>
+              <td>${w.days}일</td>
+              <td class="sc">${FC(w.avgUV)}</td>
+              <td>${FC(w.avgPV)}</td>
+              <td>${NC(w.avgRev)}</td>
+            </tr>`).join('')}
+          <tr style="background:rgba(0,113,227,.04);font-weight:700;border-top:2px solid var(--blue)">
+            <td style="text-align:left;color:var(--blue)">전체 평균</td>
+            <td style="text-align:left;font-size:11px;color:var(--t3)">${fmtD(r.startDate)} ~ ${fmtD(r.endDate)}</td>
+            <td>${r.dayCount}일</td>
+            <td style="color:var(--blue)">${FC(r.avgUV)}</td>
+            <td>${FC(r.avgPV)}</td>
+            <td>${NC(r.avgRev)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* P4 전체 배너 일평균 엑셀 다운로드 */
+function downloadAllP4BannerAvg() {
+  if(!CB||!CB.all) { alert('데이터가 로드되지 않았습니다.'); return; }
+  const data = getAllP4BannerAvgData();
+  const ruleMap = {}; BN_RULES.forEach(r=>ruleMap[r.key]=r);
+
+  let csv = '\uFEFF배너명,타입,게시기간(시작),게시기간(종료),데이터 일수(일),일평균 UV,일평균 PV,일평균 매출\n';
+  data.forEach(r => {
+    const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+    const tl = (ruleMap[r.bnrSrc]||{label:'배너'}).label;
+    csv += [
+      esc(r.block),
+      esc(tl),
+      esc(r.startDate),
+      esc(r.endDate),
+      r.dayCount,
+      r.avgUV.toFixed(1),
+      r.avgPV.toFixed(1),
+      r.avgRev.toFixed(0),
+    ].join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `P4_배너별_일평균_전체_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 (async () => {
   try {
     const saved = localStorage.getItem('dashCfg');
