@@ -56,18 +56,35 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 .m-tab-inp:focus{border-color:var(--blue)}
 .m-btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ── 사이드바 레이아웃 ── */
+.app-body{display:flex;height:calc(100vh - 52px);overflow:hidden}
+.sidebar{width:192px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);overflow-y:auto;padding:10px 0;position:sticky;top:52px;height:calc(100vh - 52px)}
+.sb-section{padding:0 0 4px}
+.sb-yr-btn{display:flex;align-items:center;gap:5px;width:100%;padding:6px 14px;font-size:12px;font-weight:700;color:var(--t2);border:none;background:transparent;cursor:pointer;font-family:inherit;text-align:left;letter-spacing:.2px}
+.sb-yr-btn .arr{font-size:10px;color:var(--t3);transition:transform .18s;margin-left:auto}
+.sb-yr-btn.open .arr{transform:rotate(90deg)}
+.sb-mo-btn{display:flex;align-items:center;width:100%;padding:5px 14px 5px 22px;font-size:12px;color:var(--t2);border:none;background:transparent;cursor:pointer;font-family:inherit;text-align:left;gap:5px}
+.sb-mo-btn:hover{background:var(--sf2);color:var(--t1)}
+.sb-mo-btn.open{color:var(--t1);font-weight:500}
+.sb-mo-btn .arr{font-size:10px;color:var(--t3);transition:transform .18s;margin-left:auto}
+.sb-mo-btn.open .arr{transform:rotate(90deg)}
+.sb-wk-btn{display:flex;align-items:center;width:100%;padding:4px 12px 4px 34px;font-size:11px;color:var(--t3);border:none;background:transparent;cursor:pointer;font-family:inherit;text-align:left;white-space:nowrap;border-right:2px solid transparent;transition:all .12s}
+.sb-wk-btn:hover{background:var(--sf2);color:var(--t1)}
+.sb-wk-btn.on{color:var(--blue);font-weight:600;background:rgba(0,113,227,.06);border-right-color:var(--blue)}
+.sb-divider{height:1px;background:var(--bd);margin:6px 14px}
+.content-area{flex:1;overflow-y:auto;min-width:0}
+
 /* Pages */
-.pg{display:none;max-width:1520px;margin:0 auto;padding:22px 24px 64px}
+.pg{display:none;padding:22px 24px 64px;min-width:0}
 .pg.on{display:block}
 
 /* Section */
 .sec{font-size:17px;font-weight:700;letter-spacing:-.4px;margin:28px 0 10px;display:flex;align-items:baseline;gap:10px}
 .sec:first-child{margin-top:0}.sec-b{font-size:12px;font-weight:400;color:var(--t3)}
 
-/* Week bar */
-.wbar{background:rgba(255,255,255,.95);backdrop-filter:saturate(180%) blur(12px);border-radius:12px;box-shadow:var(--sh1);padding:5px;display:flex;gap:2px;flex-wrap:wrap;margin-bottom:18px;border:1px solid var(--bd);position:sticky;top:60px;z-index:90}
-.wbtn{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--t2);transition:all .15s;white-space:nowrap;font-family:inherit}
-.wbtn:hover{background:var(--sf2)}.wbtn.on{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(0,113,227,.35)}
+/* Week bar — 사이드바로 대체, 숨김 처리 */
+.wbar{display:none!important}
+.wbtn{display:none}
 
 /* KPI */
 .kg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
@@ -290,6 +307,16 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
   </div>
 </header>
 
+<div class="app-body">
+<!-- ════ 사이드바 ════ -->
+<aside class="sidebar" id="sidebar">
+  <div style="padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.5px;text-transform:uppercase">기간 선택</div>
+  <div id="sb-tree"></div>
+</aside>
+
+<!-- ════ 콘텐츠 영역 ════ -->
+<div class="content-area" id="content-area">
+
 
 
 <!-- ════ PAGE 1 ════ -->
@@ -371,6 +398,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
           <div id="bnr-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;z-index:200;font-size:12px"></div>
         </div>
         <div id="bnr-type-badge" style="display:none;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(0,113,227,.08);color:var(--blue)"></div>
+        <button class="bsm" id="btn-bnr-graph" style="display:none;white-space:nowrap" onclick="openBnrChartModal('p2')">📈 그래프 확인</button>
         <button class="bsm" onclick="clearBnrSelect()" style="white-space:nowrap">✕ 초기화</button>
       </div>
 
@@ -379,6 +407,22 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
         <div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">
           배너를 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.
         </div>
+      </div>
+    </div>
+
+    <!-- ⑤ 배너 Data 비교 (P2) -->
+    <div class="sec" style="justify-content:space-between">
+      <span>⑤ 배너 Data 비교 <span class="sec-b">최대 4개 · 게시 후 N일차 기준</span></span>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div id="p2cmp-slots" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="bsm" onclick="cmpAddSlot('p2')" id="p2cmp-add-btn">+ 배너 추가</button>
+        <button class="bsm" onclick="cmpReset('p2')">✕ 초기화</button>
+        <span style="font-size:11px;color:var(--t3);margin-left:4px" id="p2cmp-hint">배너를 2개 이상 선택하면 비교합니다.</span>
+      </div>
+      <div id="p2cmp-result">
+        <div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 2개 이상 선택하면 지표를 비교합니다.</div>
       </div>
     </div>
   </div>
@@ -412,6 +456,31 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
     <div class="cg2">
       <div class="card chart-wrap"><div class="cft">운영 수량 추이</div><canvas id="c3c" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3c','운영수량추이_블록')">📷 저장</button></div>
       <div class="card chart-wrap"><div class="cft">일평균 UV 추이</div><canvas id="c3u" height="200"></canvas><button class="chart-cap-btn" onclick="captureChart('c3u','일평균UV추이')">📷 저장</button></div>
+    </div>
+
+    <!-- ④ 블록별 이용 Data -->
+    <div class="sec" style="justify-content:space-between">
+      <span>④ 블록별 이용 Data <span class="sec-b">게시기간 전체 일평균 기준</span></span>
+      <button class="bsm" onclick="downloadAllP3BlockAvg()">⬇ 전체 블록 일평균 엑셀</button>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="position:relative;flex:1;min-width:200px;max-width:400px">
+          <input id="p3-blk-search-inp" type="text" placeholder="블록명 검색 또는 선택..." autocomplete="off"
+            style="width:100%;padding:8px 36px 8px 12px;border:1px solid var(--bd);border-radius:9px;font-size:13px;font-family:inherit;color:var(--t1);background:var(--sf2);outline:none;transition:border-color .15s;box-sizing:border-box"
+            onfocus="this.style.borderColor='var(--blue)';showP3BlkDropdown()"
+            oninput="filterP3BlkList(this.value)"
+            onblur="setTimeout(()=>hideP3BlkDropdown(),180)">
+          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:13px;pointer-events:none">▾</span>
+          <div id="p3-blk-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;z-index:200;font-size:12px"></div>
+        </div>
+        <div id="p3-blk-type-badge" style="display:none;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(0,113,227,.08);color:var(--blue)"></div>
+        <button class="bsm" id="btn-p3-blk-graph" style="display:none;white-space:nowrap" onclick="openBlkChartModal()">📈 그래프 확인</button>
+        <button class="bsm" onclick="clearP3BlkSelect()" style="white-space:nowrap">✕ 초기화</button>
+      </div>
+      <div id="p3-blk-detail-area">
+        <div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">블록을 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -459,6 +528,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
           <div id="p4-bnr-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;z-index:200;font-size:12px"></div>
         </div>
         <div id="p4-bnr-type-badge" style="display:none;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(0,113,227,.08);color:var(--blue)"></div>
+        <button class="bsm" id="btn-p4-bnr-graph" style="display:none;white-space:nowrap" onclick="openBnrChartModal('p4')">📈 그래프 확인</button>
         <button class="bsm" onclick="clearP4BnrSelect()">✕ 초기화</button>
       </div>
       <!-- 선택 배너 결과 -->
@@ -468,9 +538,45 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
         </div>
       </div>
     </div>
+
+    <!-- ⑤ 배너 Data 비교 (P4) -->
+    <div class="sec" style="justify-content:space-between">
+      <span>⑤ 배너 Data 비교 <span class="sec-b">최대 4개 · 게시 후 N일차 기준</span></span>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div id="p4cmp-slots" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="bsm" onclick="cmpAddSlot('p4')" id="p4cmp-add-btn">+ 배너 추가</button>
+        <button class="bsm" onclick="cmpReset('p4')">✕ 초기화</button>
+        <span style="font-size:11px;color:var(--t3);margin-left:4px" id="p4cmp-hint">배너를 2개 이상 선택하면 비교합니다.</span>
+      </div>
+      <div id="p4cmp-result">
+        <div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 2개 이상 선택하면 지표를 비교합니다.</div>
+      </div>
+    </div>
   </div>
 </div>
 
+
+<!-- ════ 배너/블록 일별 그래프 팝업 ════ -->
+<div id="bnrChartOv" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);align-items:center;justify-content:center" onclick="if(event.target===this)closeBnrChartModal()">
+  <div style="background:var(--sf);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.25);padding:28px;width:760px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--t1)" id="bnrChartTitle">일별 추이</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px" id="bnrChartSub"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="bsm" onclick="saveBnrChartImage()">📷 이미지 저장</button>
+        <button style="font-size:18px;line-height:1;border:none;background:transparent;color:var(--t3);cursor:pointer;padding:4px 8px" onclick="closeBnrChartModal()">✕</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap" id="bnrChartLegend"></div>
+    <div style="background:var(--sf2);border-radius:14px;padding:16px 18px;border:1px solid var(--bd)">
+      <canvas id="bnr-popup-chart" height="160"></canvas>
+    </div>
+  </div>
+</div>
 
 <div class="detail-ov" id="detailOv" onclick="if(event.target===this)closeDetail()">
   <div class="detail-modal">
@@ -486,6 +592,9 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
 </div>
 
 <footer>홈 이용 지표 통합 대시보드 · Sheet ID: 1Btbb6dM9jPTR5B_Ryq2US8v0yoPnjrLpB6ImH6DVCRU · GitHub Pages 배포용</footer>
+
+</div><!-- /content-area -->
+</div><!-- /app-body -->
 
 <script>
 /* ── 버전 체크 — 구버전 localStorage 자동 초기화 ── */
@@ -606,6 +715,124 @@ function goPage(id, btn) {
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   btn.classList.add('on');
+  /* 콘텐츠 영역 스크롤 맨 위로 */
+  const ca = document.getElementById('content-area');
+  if(ca) ca.scrollTop = 0;
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR — Year › Month › Week 트리
+═══════════════════════════════════════ */
+function buildSidebar() {
+  /* 모든 페이지 주차 목록 병합: 주차 label → {p1idx, p2idx, p3idx, p4idx} */
+  /* P1은 HD.weeks, P2는 TDB.weeks, P3/P4는 CB.weeks */
+  /* 공통 주차 key로 묶어서 트리 구성 */
+  const allWeeks = new Map(); /* key=주차label, val={date1,date2,p1,p2,p3,p4} */
+
+  (HD.weeks||[]).forEach((w,i)=>{
+    if(!allWeeks.has(w)) allWeeks.set(w,{label:w,date1:HD.date1[i],date2:HD.date2[i],p1:null,p2:null,p3:null,p4:null});
+    allWeeks.get(w).p1=i;
+    if(!allWeeks.get(w).date1 && HD.date1[i]) allWeeks.get(w).date1=HD.date1[i];
+  });
+  (TDB.weeks||[]).forEach((w,i)=>{
+    if(!allWeeks.has(w)) allWeeks.set(w,{label:w,date1:null,date2:null,p1:null,p2:null,p3:null,p4:null});
+    allWeeks.get(w).p2=i;
+  });
+  (CB.weeks||[]).forEach((w,i)=>{
+    if(!allWeeks.has(w)) allWeeks.set(w,{label:w,date1:null,date2:null,p1:null,p2:null,p3:null,p4:null});
+    allWeeks.get(w).p3=i;
+    allWeeks.get(w).p4=i;
+  });
+
+  /* 주차 label → {year, month} 파싱: "2026-06-W2" 또는 "2026-W23" 등 */
+  function parseWkKey(label) {
+    const m3 = label.match(/^(\d{4})-(\d{2})-W(\d+)$/);
+    if(m3) return {year:m3[1], month:m3[2], wn:m3[3]};
+    const m2 = label.match(/^(\d{4})-W(\d+)$/);
+    if(m2) return {year:m2[1], month:null, wn:m2[2]};
+    return {year:'기타', month:null, wn:label};
+  }
+
+  /* Year > Month > Week 구조 */
+  const tree = {}; /* {year: {month: [ {label,date1,date2,p1,p2,p3,p4} ] }} */
+  allWeeks.forEach((v,k)=>{
+    const {year,month} = parseWkKey(k);
+    const mo = month || '기타';
+    if(!tree[year]) tree[year]={};
+    if(!tree[year][mo]) tree[year][mo]=[];
+    tree[year][mo].push(v);
+  });
+
+  /* 정렬: year 내림차순, month 내림차순, week 내림차순 */
+  const sortedYears = Object.keys(tree).sort((a,b)=>b-a);
+
+  /* 현재 선택 주차 판단 */
+  const curLabel = HD.weeks[hsi] || TDB.weeks[ti2] || CB.weeks[ti3] || null;
+
+  let html = '';
+  sortedYears.forEach((year,yi)=>{
+    const isYearOpen = yi===0; /* 최신 연도 기본 열림 */
+    html += `<div class="sb-section">
+      <button class="sb-yr-btn${isYearOpen?' open':''}" onclick="sbToggleYear(this)">
+        <span>${year}</span><span class="arr">▶</span>
+      </button>
+      <div class="sb-yr-body" style="${isYearOpen?'':'display:none'}">`;
+
+    const sortedMonths = Object.keys(tree[year]).sort((a,b)=>b.localeCompare(a));
+    sortedMonths.forEach((mo,mi)=>{
+      const weeks = tree[year][mo].sort((a,b)=>b.label.localeCompare(a.label));
+      const moLabel = mo==='기타' ? mo : `${+mo}월`;
+      /* 현재 선택 주차가 이 월에 있으면 기본 열림 */
+      const hasCur = weeks.some(w=>w.label===curLabel);
+      const isMoOpen = (yi===0 && mi===0) || hasCur;
+      html += `<button class="sb-mo-btn${isMoOpen?' open':''}" onclick="sbToggleMo(this)">
+        <span>${moLabel}</span><span class="arr">▶</span>
+      </button>
+      <div class="sb-mo-body" style="${isMoOpen?'':'display:none'}">`;
+
+      weeks.forEach(w=>{
+        const isSel = w.label===curLabel;
+        const shortLabel = w.label.replace(/^\d{4}-\d{2}-/,''); /* W2 */
+        const dateRange = (w.date1&&w.date2) ? `<span style="font-size:10px;opacity:.7;margin-left:4px">${fmtMD(w.date1)}~${fmtMD(w.date2)}</span>` : '';
+        html += `<button class="sb-wk-btn${isSel?' on':''}" onclick="sbSelectWeek(this,'${w.label}')">${shortLabel}${dateRange}</button>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+    if(yi < sortedYears.length-1) html += `<div class="sb-divider"></div>`;
+  });
+
+  const tree_el = document.getElementById('sb-tree');
+  if(tree_el) tree_el.innerHTML = html;
+}
+
+function sbToggleYear(btn) {
+  btn.classList.toggle('open');
+  const body = btn.nextElementSibling;
+  if(body) body.style.display = body.style.display==='none' ? '' : 'none';
+}
+function sbToggleMo(btn) {
+  btn.classList.toggle('open');
+  const body = btn.nextElementSibling;
+  if(body) body.style.display = body.style.display==='none' ? '' : 'none';
+}
+function sbSelectWeek(btn, label) {
+  /* 모든 wk 버튼 off */
+  document.querySelectorAll('.sb-wk-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+
+  /* 각 페이지 인덱스 업데이트 */
+  const p1i = (HD.weeks||[]).indexOf(label);
+  const p2i = (TDB.weeks||[]).indexOf(label);
+  const p3i = (CB.weeks||[]).indexOf(label);
+
+  if(p1i>=0){ hsi=p1i; rKG1(); rDG1(); rDN1(); rTbl1(); }
+  if(p2i>=0){ ti2=p2i; rT2All(); }
+  if(p3i>=0){ ti3=p3i; ti4=p3i; rT3All(); rT4All(); }
+
+  /* 선택 주차 헤더 표시 업데이트 */
+  const sbLabel = document.getElementById('sb-cur-week');
+  if(sbLabel) sbLabel.textContent = label;
 }
 
 /* ═══════════════════════════════════════
@@ -788,6 +1015,9 @@ async function loadAll() {
     });
 
     setSS('ok', `연동됨 · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`);
+
+    /* 사이드바 트리 빌드 */
+    buildSidebar();
 
     // 설정 저장
     try { localStorage.setItem('dashCfg', JSON.stringify(CFG)); } catch(e){}
@@ -2224,6 +2454,201 @@ function closeAdmin() { document.getElementById('ovAdmin').classList.remove('ope
 document.getElementById('ovAdmin').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeAdmin(); });
 
 /* ═══════════════════════════════════════
+   ④ 블록별 이용 Data (P3 콘텐츠 블록)
+   CB.all(!isBanner) 전체 기간 일평균 집계
+═══════════════════════════════════════ */
+
+function getAllP3BlockAvgData() {
+  if(!CB||!CB.all) return [];
+  const map = {};
+  CB.all.filter(d=>!d.isBanner).forEach(d=>{
+    const k = d.block;
+    if(!map[k]) map[k]={uv:0,pv:0,rev:0,days:new Set(),src:d.src};
+    map[k].uv  += d.uv;
+    map[k].pv  += d.pv;
+    map[k].rev += d.rev;
+    map[k].days.add(d.date.toISOString().slice(0,10));
+  });
+  return Object.entries(map).map(([block,v])=>{
+    const days=[...v.days].sort();
+    return {
+      block,
+      src:       v.src,
+      startDate: days[0],
+      endDate:   days[days.length-1],
+      dayCount:  v.days.size,
+      avgUV:     v.uv  / v.days.size,
+      avgPV:     v.pv  / v.days.size,
+      avgRev:    v.rev / v.days.size,
+    };
+  }).sort((a,b)=>b.avgUV-a.avgUV);
+}
+
+function showP3BlkDropdown()  { filterP3BlkList(document.getElementById('p3-blk-search-inp').value); }
+function hideP3BlkDropdown()  { const d=document.getElementById('p3-blk-dropdown'); if(d) d.style.display='none'; }
+
+function filterP3BlkList(q) {
+  const dd = document.getElementById('p3-blk-dropdown');
+  if(!dd||!CB) return;
+  const all = getAllP3BlockAvgData();
+  const filtered = q ? all.filter(r=>r.block.toLowerCase().includes(q.toLowerCase())) : all;
+  if(!filtered.length) { dd.style.display='none'; return; }
+
+  /* CB_RULES 기반 색상/라벨 */
+  const ruleMap={};
+  CB_RULES.forEach(r=>ruleMap[r.key]=r);
+
+  dd.innerHTML = filtered.slice(0,80).map(r=>{
+    const rule = ruleMap[r.src]||{color:'#86868b',label:'블록'};
+    return `<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.04);transition:background .1s;display:flex;align-items:center;gap:8px"
+      onmousedown="selectP3Block('${r.block.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"
+      onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
+      <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;background:${rule.color}22;color:${rule.color};flex-shrink:0">${rule.label}</span>
+      <span style="flex:1;font-size:12px;color:var(--t1)">${r.block}</span>
+      <span style="font-size:11px;color:var(--t3);flex-shrink:0">${r.dayCount}일</span>
+    </div>`;
+  }).join('');
+  dd.style.display='block';
+}
+
+function selectP3Block(blockName) {
+  const inp = document.getElementById('p3-blk-search-inp');
+  if(inp) inp.value = blockName;
+  hideP3BlkDropdown();
+  renderP3BlkDetail(blockName);
+}
+
+function clearP3BlkSelect() {
+  const inp = document.getElementById('p3-blk-search-inp');
+  if(inp) inp.value='';
+  hideP3BlkDropdown();
+  const area = document.getElementById('p3-blk-detail-area');
+  if(area) area.innerHTML=`<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">블록을 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.</div>`;
+  const badge = document.getElementById('p3-blk-type-badge');
+  if(badge) badge.style.display='none';
+  const graphBtn = document.getElementById('btn-p3-blk-graph');
+  if(graphBtn) graphBtn.style.display='none';
+  window._bnrChartCache = null;
+}
+
+function renderP3BlkDetail(blockName) {
+  const area = document.getElementById('p3-blk-detail-area');
+  if(!area||!CB) return;
+
+  const all = getAllP3BlockAvgData();
+  const r = all.find(x=>x.block===blockName);
+  if(!r){ area.innerHTML=`<div style="color:var(--t3);padding:20px;text-align:center">데이터 없음</div>`; return; }
+
+  const ruleMap={}; CB_RULES.forEach(ru=>ruleMap[ru.key]=ru);
+  const rule = ruleMap[r.src]||{color:'#86868b',label:'블록'};
+  const tc=rule.color, tl=rule.label;
+
+  /* 타입 뱃지 */
+  const badge = document.getElementById('p3-blk-type-badge');
+  if(badge){ badge.textContent=tl; badge.style.background=tc+'18'; badge.style.color=tc; badge.style.display=''; }
+
+  const fmtD = s=>{ if(!s) return '-'; const p=s.split('-'); return `${+p[1]}/${+p[2]}`; };
+  const period=`${fmtD(r.startDate)} ~ ${fmtD(r.endDate)} (${r.dayCount}일)`;
+
+  /* 주차별 집계 */
+  const weekRows = CB.weeks.map(w=>{
+    const rows=CB.all.filter(d=>!d.isBanner && d.block===blockName && d.week===w);
+    if(!rows.length) return null;
+    const days=new Set(rows.map(d=>d.date.toISOString().slice(0,10)));
+    const uv =rows.reduce((s,d)=>s+d.uv,0)/days.size;
+    const pv =rows.reduce((s,d)=>s+d.pv,0)/days.size;
+    const rev=rows.reduce((s,d)=>s+d.rev,0)/days.size;
+    const sorted=rows.map(d=>d.date).sort((a,b)=>a-b);
+    const wFmt=d=>`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')}`;
+    return {week:w, dateRange:`${wFmt(sorted[0])}~${wFmt(sorted[sorted.length-1])}`, days:days.size, avgUV:uv, avgPV:pv, avgRev:rev};
+  }).filter(Boolean);
+
+  area.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      ${[
+        {l:'게시기간 일평균 UV',  v:FC(r.avgUV),  c:tc},
+        {l:'게시기간 일평균 PV',  v:FC(r.avgPV),  c:'#34c759'},
+        {l:'게시기간 일평균 매출', v:NC(r.avgRev), c:'#ff9f0a'},
+      ].map(k=>`
+        <div style="background:var(--sf2);border-radius:12px;padding:14px 16px;border:1px solid var(--bd);border-top:3px solid ${k.c}">
+          <div class="kl" style="margin-bottom:5px">${k.l}</div>
+          <div class="kv" style="font-size:20px;color:${k.c}">${k.v}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:12px;padding:8px 12px;background:var(--sf2);border-radius:8px;border:1px solid var(--bd)">
+      📅 데이터 조회 기간 <strong style="color:var(--t1)">${period}</strong>　|　블록 유형 <strong style="color:${tc}">${tl}</strong>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">주차별 일평균 상세</div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th style="text-align:left;min-width:100px">주차</th>
+          <th style="text-align:left;min-width:110px">날짜 범위</th>
+          <th>운영일수</th>
+          <th class="sel">일평균 UV</th>
+          <th>일평균 PV</th>
+          <th>일평균 매출</th>
+        </tr></thead>
+        <tbody>
+          ${weekRows.map(w=>`
+            <tr>
+              <td style="text-align:left">${w.week}</td>
+              <td style="text-align:left;font-size:11px;color:var(--t3)">${w.dateRange}</td>
+              <td>${w.days}일</td>
+              <td class="sc">${FC(w.avgUV)}</td>
+              <td>${FC(w.avgPV)}</td>
+              <td>${NC(w.avgRev)}</td>
+            </tr>`).join('')}
+          <tr style="background:rgba(0,113,227,.04);font-weight:700;border-top:2px solid var(--blue)">
+            <td style="text-align:left;color:var(--blue)">전체 평균</td>
+            <td style="text-align:left;font-size:11px;color:var(--t3)">${fmtD(r.startDate)} ~ ${fmtD(r.endDate)}</td>
+            <td>${r.dayCount}일</td>
+            <td style="color:var(--blue)">${FC(r.avgUV)}</td>
+            <td>${FC(r.avgPV)}</td>
+            <td>${NC(r.avgRev)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- 일별 추이 그래프는 상단 '그래프 확인' 버튼으로 팝업 확인 -->
+  `;
+
+  /* 일별 데이터 집계 → 팝업 캐시 */
+  const dailyMap={};
+  CB.all.filter(d=>!d.isBanner && d.block===blockName).forEach(d=>{
+    const k=d.date.toISOString().slice(0,10);
+    if(!dailyMap[k]) dailyMap[k]={uv:0,pv:0,rev:0};
+    dailyMap[k].uv+=d.uv; dailyMap[k].pv+=d.pv; dailyMap[k].rev+=d.rev;
+  });
+  window._bnrChartCache = {page:'p3', name:blockName, tc, tl, dailyMap};
+
+  const graphBtn=document.getElementById('btn-p3-blk-graph');
+  if(graphBtn) graphBtn.style.display='';
+}
+
+/* 전체 블록 일평균 엑셀 다운로드 */
+function downloadAllP3BlockAvg() {
+  if(!CB||!CB.all){ alert('데이터가 로드되지 않았습니다.'); return; }
+  const data=getAllP3BlockAvgData();
+  const ruleMap={}; CB_RULES.forEach(r=>ruleMap[r.key]=r);
+  let csv='\uFEFF블록명,유형,게시기간(시작),게시기간(종료),데이터 일수(일),일평균 UV,일평균 PV,일평균 매출\n';
+  data.forEach(r=>{
+    const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
+    const tl=(ruleMap[r.src]||{label:'블록'}).label;
+    csv+=[esc(r.block),esc(tl),esc(r.startDate),esc(r.endDate),r.dayCount,r.avgUV.toFixed(1),r.avgPV.toFixed(1),r.avgRev.toFixed(0)].join(',')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`P3_블록별_일평균_전체_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* P3 그래프 팝업 오픈 — 공용 openBnrChartModal 재사용 */
+function openBlkChartModal() { openBnrChartModal('p3'); }
+
+/* ═══════════════════════════════════════
    ④ 배너별 이용 Data (P2 섹션)
    TDB.all 전체 기간 일평균 집계
 ═══════════════════════════════════════ */
@@ -2292,6 +2717,96 @@ function selectBanner(bannerName) {
   renderBnrDetail(bannerName);
 }
 
+/* ═══════════════════════════════════════
+   배너 일별 그래프 팝업
+═══════════════════════════════════════ */
+function openBnrChartModal(page) {
+  const cache = window._bnrChartCache;
+  if(!cache) return;
+
+  const { name, tc, tl, dailyMap } = cache;
+  const dailyDates = Object.keys(dailyMap).sort();
+  const fmtAxisD = s => { const p=s.split('-'); return `${+p[1]}/${+p[2]}`; };
+
+  /* 제목 / 부제 */
+  document.getElementById('bnrChartTitle').textContent = `${name} — 일별 추이`;
+  const dateRange = dailyDates.length
+    ? `${dailyDates[0]} ~ ${dailyDates[dailyDates.length-1]} (${dailyDates.length}일)`
+    : '';
+  document.getElementById('bnrChartSub').textContent = dateRange;
+
+  /* 범례 */
+  document.getElementById('bnrChartLegend').innerHTML = [
+    {color:tc,     label:'UV',  dash:''},
+    {color:'#34c759', label:'PV',  dash:'border-top:2px dashed #34c759'},
+    {color:'#ff9f0a', label:'매출', dash:'border-top:2px dotted #ff9f0a'},
+  ].map(l=>`<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2)">
+    <div style="width:22px;height:2px;background:${l.color};border-radius:1px;${l.dash}"></div>${l.label}
+  </div>`).join('');
+
+  /* 팝업 표시 */
+  const ov = document.getElementById('bnrChartOv');
+  ov.style.display = 'flex';
+
+  /* 차트 그리기 */
+  setTimeout(()=>{
+    const el = document.getElementById('bnr-popup-chart');
+    if(!el) return;
+    if(window._bnrPopupChart) { window._bnrPopupChart.destroy(); window._bnrPopupChart=null; }
+    window._bnrPopupChart = new Chart(el.getContext('2d'),{
+      type:'line',
+      data:{
+        labels: dailyDates.map(fmtAxisD),
+        datasets:[
+          {label:'UV',  data:dailyDates.map(k=>dailyMap[k].uv),  borderColor:tc,        backgroundColor:tc+'18',     fill:false,tension:.35,pointRadius:dailyDates.length>60?0:3,pointHoverRadius:5,borderWidth:2,yAxisID:'y'},
+          {label:'PV',  data:dailyDates.map(k=>dailyMap[k].pv),  borderColor:'#34c759', backgroundColor:'#34c75918', fill:false,tension:.35,pointRadius:dailyDates.length>60?0:3,pointHoverRadius:5,borderWidth:2,borderDash:[5,3],yAxisID:'y'},
+          {label:'매출', data:dailyDates.map(k=>dailyMap[k].rev), borderColor:'#ff9f0a', backgroundColor:'#ff9f0a18',fill:false,tension:.35,pointRadius:dailyDates.length>60?0:3,pointHoverRadius:5,borderWidth:2,borderDash:[2,3],yAxisID:'y2'},
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:true,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{padding:10,cornerRadius:8,callbacks:{
+            title: ctx => dailyDates[ctx[0].dataIndex] || ctx[0].label,
+            label: ctx => {
+              const lbl = ['UV','PV','매출'][ctx.datasetIndex];
+              const fmt = ctx.datasetIndex===2 ? NC : FC;
+              return ` ${lbl}: ${fmt(ctx.parsed.y)}`;
+            }
+          }}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:9},color:'#86868b',maxTicksLimit:20,maxRotation:0}},
+          y:{position:'left',grid:{color:'rgba(0,0,0,.05)'},border:{display:false},
+             ticks:{font:{size:10},color:'#86868b',callback:v=>FM(v)},
+             title:{display:true,text:'UV / PV',font:{size:10},color:'#86868b'}},
+          y2:{position:'right',grid:{display:false},border:{display:false},
+              ticks:{font:{size:10},color:'#ff9f0a',callback:v=>FM(v)},
+              title:{display:true,text:'매출',font:{size:10},color:'#ff9f0a'}}
+        }
+      }
+    });
+  }, 60);
+}
+
+function closeBnrChartModal() {
+  document.getElementById('bnrChartOv').style.display = 'none';
+  if(window._bnrPopupChart) { window._bnrPopupChart.destroy(); window._bnrPopupChart=null; }
+}
+
+function saveBnrChartImage() {
+  if(!window._bnrPopupChart) return;
+  const cache = window._bnrChartCache;
+  const name = cache ? cache.name.slice(0,20) : '배너';
+  const url = window._bnrPopupChart.toBase64Image('image/png', 1);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name}_일별추이_${new Date().toISOString().slice(0,10)}.png`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
 function clearBnrSelect() {
   const inp = document.getElementById('bnr-search-inp');
   if(inp) inp.value = '';
@@ -2300,6 +2815,9 @@ function clearBnrSelect() {
   if(area) area.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.</div>`;
   const badge = document.getElementById('bnr-type-badge');
   if(badge) badge.style.display='none';
+  const graphBtn = document.getElementById('btn-bnr-graph');
+  if(graphBtn) graphBtn.style.display='none';
+  window._bnrChartCache = null;
 }
 
 /* 선택 배너 상세 렌더 */
@@ -2389,7 +2907,24 @@ function renderBnrDetail(bannerName) {
           </tr>
         </tbody>
       </table>
-    </div>`;
+    </div>
+    <!-- 일별 추이 그래프는 상단 '그래프 확인' 버튼으로 팝업 확인 -->
+  `;
+
+  /* 일별 데이터 집계 → 팝업용 캐시 */
+  const dailyMap = {};
+  TDB.all.filter(d=>d.banner===bannerName).forEach(d=>{
+    const k = d.date.toISOString().slice(0,10);
+    if(!dailyMap[k]) dailyMap[k]={uv:0,pv:0,rev:0};
+    dailyMap[k].uv  += d.uv;
+    dailyMap[k].pv  += d.pv;
+    dailyMap[k].rev += d.rev;
+  });
+  window._bnrChartCache = { page:'p2', name:bannerName, tc, tl, dailyMap };
+
+  /* 그래프 버튼 표시 */
+  const graphBtn = document.getElementById('btn-bnr-graph');
+  if(graphBtn) graphBtn.style.display = '';
 }
 
 /* 전체 배너 일평균 엑셀 다운로드 */
@@ -2501,6 +3036,9 @@ function clearP4BnrSelect() {
   if(area) area.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 선택하면 게시기간 전체의 일평균 데이터를 확인할 수 있습니다.</div>`;
   const badge = document.getElementById('p4-bnr-type-badge');
   if(badge) badge.style.display='none';
+  const graphBtn = document.getElementById('btn-p4-bnr-graph');
+  if(graphBtn) graphBtn.style.display='none';
+  window._bnrChartCache = null;
 }
 
 function renderP4BnrDetail(blockName) {
@@ -2582,7 +3120,24 @@ function renderP4BnrDetail(blockName) {
           </tr>
         </tbody>
       </table>
-    </div>`;
+    </div>
+    <!-- 일별 추이 그래프는 상단 '그래프 확인' 버튼으로 팝업 확인 -->
+  `;
+
+  /* 일별 데이터 집계 → 팝업용 캐시 */
+  const dailyMap = {};
+  CB.all.filter(d=>d.isBanner && d.block===blockName).forEach(d=>{
+    const k = d.date.toISOString().slice(0,10);
+    if(!dailyMap[k]) dailyMap[k]={uv:0,pv:0,rev:0};
+    dailyMap[k].uv  += d.uv;
+    dailyMap[k].pv  += d.pv;
+    dailyMap[k].rev += d.rev;
+  });
+  window._bnrChartCache = { page:'p4', name:blockName, tc, tl, dailyMap };
+
+  /* 그래프 버튼 표시 */
+  const graphBtn = document.getElementById('btn-p4-bnr-graph');
+  if(graphBtn) graphBtn.style.display = '';
 }
 
 /* P4 전체 배너 일평균 엑셀 다운로드 */
@@ -2617,12 +3172,583 @@ function downloadAllP4BannerAvg() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+/* ═══════════════════════════════════════
+   ⑤ 배너 Data 비교 — P2 (TDB) & P4 (CB)
+   최대 4개 비교 · N일차 X축 · 이미지저장 · 엑셀
+═══════════════════════════════════════ */
+
+/* ── 슬롯 색상 팔레트 (A/B/C/D) ── */
+const CMP_SLOTS = [
+  {id:'A', bg:'#E6F1FB', text:'#185FA5', line:'#378ADD', dash:[]},
+  {id:'B', bg:'#EEEDFE', text:'#534AB7', line:'#7F77DD', dash:[]},
+  {id:'C', bg:'#EAF3DE', text:'#3B6D11', line:'#639922', dash:[]},
+  {id:'D', bg:'#FAEEDA', text:'#854F0B', line:'#BA7517', dash:[]},
+];
+
+/* ── 페이지별 상태 ── */
+const cmpState = {
+  p2: { slots:[], chartInst:null, metric:'uv' },
+  p4: { slots:[], chartInst:null, metric:'uv' },
+};
+
+/* ── 초기화: 페이지 로드 후 슬롯 2개 생성 ── */
+function cmpInit(page) {
+  cmpState[page].slots = [];
+  cmpState[page].chartInst = null;
+  cmpState[page].metric = 'uv';
+  const slotsEl = document.getElementById(`${page}cmp-slots`);
+  if(slotsEl) slotsEl.innerHTML = '';
+  // 기본 2개 슬롯
+  cmpAddSlot(page);
+  cmpAddSlot(page);
+}
+
+/* ── 슬롯 추가 (최대 4개) ── */
+function cmpAddSlot(page) {
+  const st = cmpState[page];
+  if(st.slots.length >= 4) return;
+  const idx = st.slots.length;
+  const pal = CMP_SLOTS[idx];
+  const slotId = `${page}cmp-slot-${idx}`;
+  st.slots.push({ idx, name: null, pal });
+
+  const slotsEl = document.getElementById(`${page}cmp-slots`);
+  const div = document.createElement('div');
+  div.id = slotId;
+  div.innerHTML = `
+    <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:5px;display:flex;align-items:center;gap:6px">
+      <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${pal.bg};color:${pal.text};font-size:10px;font-weight:700">${pal.id}</span>
+      ${idx >= 2
+        ? `<button onclick="cmpRemoveSlot('${page}',${idx})" style="margin-left:auto;font-size:11px;color:var(--t3);border:none;background:transparent;cursor:pointer;padding:2px 4px;line-height:1" title="슬롯 제거">✕ 제거</button>`
+        : `<button id="${page}cmp-clear-${idx}" onclick="cmpClearSlot('${page}',${idx})" style="display:none;margin-left:auto;font-size:11px;color:var(--t3);border:none;background:transparent;cursor:pointer;padding:2px 4px;line-height:1" title="선택 취소">✕</button>`
+      }
+    </div>
+    <div style="position:relative">
+      <input id="${page}cmp-inp-${idx}" type="text" placeholder="배너명 검색..." autocomplete="off"
+        style="width:100%;padding:7px 32px 7px 10px;border:1px solid var(--bd);border-radius:9px;font-size:12px;font-family:inherit;color:var(--t1);background:var(--sf2);outline:none;transition:border-color .15s;box-sizing:border-box"
+        onfocus="this.style.borderColor='${pal.line}';cmpShowDrop('${page}',${idx})"
+        oninput="cmpFilter('${page}',${idx},this.value)"
+        onblur="setTimeout(()=>cmpHideDrop('${page}',${idx}),180)">
+      <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px;pointer-events:none">▾</span>
+      <div id="${page}cmp-drop-${idx}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:180px;overflow-y:auto;z-index:200;font-size:12px"></div>
+    </div>`;
+  slotsEl.appendChild(div);
+
+  /* 4개 꽉 찼으면 추가 버튼 숨김 */
+  const addBtn = document.getElementById(`${page}cmp-add-btn`);
+  if(addBtn) addBtn.style.display = st.slots.length >= 4 ? 'none' : '';
+}
+
+/* ── 슬롯 제거 (C/D만 가능) ── */
+function cmpRemoveSlot(page, idx) {
+  const st = cmpState[page];
+  st.slots.splice(idx, 1);
+  /* DOM 전체 재빌드 */
+  const slotsEl = document.getElementById(`${page}cmp-slots`);
+  slotsEl.innerHTML = '';
+  const backup = st.slots.map(s=>s.name);
+  st.slots = [];
+  backup.forEach(name => {
+    cmpAddSlot(page);
+    const newIdx = st.slots.length - 1;
+    if(name) {
+      st.slots[newIdx].name = name;
+      const inp = document.getElementById(`${page}cmp-inp-${newIdx}`);
+      if(inp) inp.value = name;
+    }
+  });
+  const addBtn = document.getElementById(`${page}cmp-add-btn`);
+  if(addBtn) addBtn.style.display = st.slots.length >= 4 ? 'none' : '';
+  cmpTryRender(page);
+}
+
+/* ── 드롭다운 ── */
+function cmpShowDrop(page, idx) { cmpFilter(page, idx, document.getElementById(`${page}cmp-inp-${idx}`).value); }
+function cmpHideDrop(page, idx) { const d=document.getElementById(`${page}cmp-drop-${idx}`); if(d) d.style.display='none'; }
+
+function cmpFilter(page, idx, q) {
+  const dd = document.getElementById(`${page}cmp-drop-${idx}`);
+  if(!dd) return;
+  const isP2 = page==='p2';
+  if(isP2 && !TDB) return;
+  if(!isP2 && !CB) return;
+
+  const all = isP2 ? getAllBannerAvgData() : getAllP4BannerAvgData();
+  const nameKey = isP2 ? 'banner' : 'block';
+  const filtered = q ? all.filter(r=>r[nameKey].toLowerCase().includes(q.toLowerCase())) : all;
+  if(!filtered.length) { dd.style.display='none'; return; }
+
+  const pal = CMP_SLOTS[idx] || CMP_SLOTS[0];
+
+  let itemHtml;
+  if(isP2) {
+    const typeColor={mass:'#378ADD',target:'#E24B4A',content:'#639922'};
+    const typeLabel={mass:'Mass',target:'Target',content:'콘텐츠'};
+    itemHtml = filtered.slice(0,80).map(r =>
+      `<div style="padding:7px 12px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.04);transition:background .1s;display:flex;align-items:center;gap:8px"
+        onmousedown="cmpSelect('${page}',${idx},'${r[nameKey].replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"
+        onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
+        <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;background:${typeColor[r.type]||'#86868b'}22;color:${typeColor[r.type]||'#86868b'};flex-shrink:0">${typeLabel[r.type]||r.type}</span>
+        <span style="flex:1;color:var(--t1)">${r[nameKey]}</span>
+        <span style="font-size:11px;color:var(--t3);flex-shrink:0">${r.dayCount}일</span>
+      </div>`).join('');
+  } else {
+    const ruleMap={}; BN_RULES.forEach(r=>ruleMap[r.key]=r);
+    itemHtml = filtered.slice(0,80).map(r => {
+      const rule = ruleMap[r.bnrSrc]||{color:'#86868b',label:'배너'};
+      return `<div style="padding:7px 12px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.04);transition:background .1s;display:flex;align-items:center;gap:8px"
+        onmousedown="cmpSelect('${page}',${idx},'${r[nameKey].replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"
+        onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
+        <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;background:${rule.color}22;color:${rule.color};flex-shrink:0">${rule.label}</span>
+        <span style="flex:1;color:var(--t1)">${r[nameKey]}</span>
+        <span style="font-size:11px;color:var(--t3);flex-shrink:0">${r.dayCount}일</span>
+      </div>`;
+    }).join('');
+  }
+  dd.innerHTML = itemHtml;
+  dd.style.display = 'block';
+}
+
+function cmpSelect(page, idx, name) {
+  const inp = document.getElementById(`${page}cmp-inp-${idx}`);
+  if(inp) inp.value = name;
+  cmpHideDrop(page, idx);
+  cmpState[page].slots[idx].name = name;
+  /* A/B 슬롯 ✕ 버튼 표시 */
+  if(idx < 2) {
+    const clrBtn = document.getElementById(`${page}cmp-clear-${idx}`);
+    if(clrBtn) clrBtn.style.display = '';
+  }
+  cmpTryRender(page);
+}
+
+/* A/B 슬롯 선택값만 취소 (슬롯은 유지) */
+function cmpClearSlot(page, idx) {
+  const inp = document.getElementById(`${page}cmp-inp-${idx}`);
+  if(inp) inp.value = '';
+  const clrBtn = document.getElementById(`${page}cmp-clear-${idx}`);
+  if(clrBtn) clrBtn.style.display = 'none';
+  cmpHideDrop(page, idx);
+  if(cmpState[page].slots[idx]) cmpState[page].slots[idx].name = null;
+  cmpTryRender(page);
+}
+
+/* ── 선택된 배너가 2개 이상이면 렌더 ── */
+function cmpTryRender(page) {
+  const names = cmpState[page].slots.map(s=>s.name).filter(Boolean);
+  const hint = document.getElementById(`${page}cmp-hint`);
+  if(names.length < 2) {
+    if(hint) hint.textContent = `배너를 ${2 - names.length}개 더 선택하면 비교합니다.`;
+    const resultEl = document.getElementById(`${page}cmp-result`);
+    if(resultEl) resultEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 2개 이상 선택하면 지표를 비교합니다.</div>`;
+    return;
+  }
+  if(hint) hint.textContent = `${names.length}개 배너 비교 중`;
+  renderCmpResult(page);
+}
+
+/* ── 초기화 ── */
+function cmpReset(page) {
+  const st = cmpState[page];
+  if(st.chartInst) { st.chartInst.destroy(); st.chartInst=null; }
+  const resultEl = document.getElementById(`${page}cmp-result`);
+  if(resultEl) resultEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 2개 이상 선택하면 지표를 비교합니다.</div>`;
+  cmpInit(page);
+  /* A/B ✕ 버튼 숨김 */
+  [0,1].forEach(i=>{ const b=document.getElementById(`${page}cmp-clear-${i}`); if(b) b.style.display='none'; });
+}
+
+/* ── 일별 데이터 N일차 추출 ── */
+function getCmpDailyByDay(rows, keyField, name) {
+  const filtered = rows.filter(d => d[keyField] === name);
+  const map = {};
+  filtered.forEach(d => {
+    const k = d.date.toISOString().slice(0,10);
+    if(!map[k]) map[k] = {uv:0, pv:0, rev:0, dateObj:d.date};
+    map[k].uv += d.uv; map[k].pv += d.pv; map[k].rev += d.rev;
+  });
+  return Object.entries(map)
+    .sort((a,b)=>a[1].dateObj - b[1].dateObj)
+    .map(([date, v], i) => ({day:i+1, date, uv:v.uv, pv:v.pv, rev:v.rev}));
+}
+
+/* ── 비교 결과 렌더 ── */
+function renderCmpResult(page) {
+  const isP2 = page === 'p2';
+  const st = cmpState[page];
+  const activeSlots = st.slots.filter(s=>s.name);
+  const resultEl = document.getElementById(`${page}cmp-result`);
+  if(!resultEl) return;
+
+  const allRows  = isP2 ? TDB.all : CB.all;
+  const keyField = isP2 ? 'banner' : 'block';
+  const fmtD = s => { if(!s) return '-'; const p=s.split('-'); return `${+p[1]}/${+p[2]}`; };
+
+  /* 슬롯별 데이터 수집 */
+  const items = activeSlots.map(slot => {
+    const name = slot.name;
+    const avgData = isP2
+      ? getAllBannerAvgData().find(x=>x.banner===name)
+      : getAllP4BannerAvgData().find(x=>x.block===name);
+    const daily = getCmpDailyByDay(allRows, keyField, name);
+    return {name, pal:slot.pal, avgData, daily};
+  }).filter(x=>x.avgData);
+
+  if(items.length < 2) {
+    resultEl.innerHTML = `<div style="color:var(--t3);text-align:center;padding:20px">데이터를 불러올 수 없습니다.</div>`;
+    return;
+  }
+
+  /* 게시기간 카드 */
+  const periodCols = items.length <= 2 ? `repeat(${items.length},1fr)` : `repeat(2,1fr)`;
+  const periodCards = items.map(it => `
+    <div style="background:${it.pal.bg};border-radius:10px;padding:10px 14px">
+      <div style="font-size:10px;font-weight:700;color:${it.pal.text};margin-bottom:3px">${it.pal.id} · ${it.name}</div>
+      <div style="font-size:12px;color:${it.pal.text}">${fmtD(it.avgData.startDate)} ~ ${fmtD(it.avgData.endDate)}</div>
+      <div style="font-size:11px;color:${it.pal.line};margin-top:2px">총 ${it.avgData.dayCount}일 운영</div>
+    </div>`).join('');
+
+  /* 일평균 지표 카드 */
+  const metrics = [
+    {key:'uv',  label:'일평균 UV',   fmt:FC},
+    {key:'pv',  label:'일평균 PV',   fmt:FC},
+    {key:'rev', label:'일평균 매출', fmt:NC},
+  ];
+  const metricCards = metrics.map(m => {
+    const vals = items.map(it => it.avgData[m.key==='rev'?'avgRev':m.key==='uv'?'avgUV':'avgPV']);
+    const maxVal = Math.max(...vals);
+    const rows = items.map((it,i) => {
+      const v = vals[i];
+      const isWin = Math.abs(v - maxVal) < 0.01 && items.length > 1;
+      return `<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+        <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${it.pal.bg};color:${it.pal.text};flex-shrink:0">${it.pal.id}</span>
+        <span style="font-size:15px;font-weight:700;color:${it.pal.text}">${m.fmt(v)}</span>
+        ${isWin ? `<span style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;background:${it.pal.bg};color:${it.pal.text}">▲</span>` : ''}
+      </div>`;
+    }).join('');
+    return `<div style="background:var(--sf2);border-radius:12px;padding:12px 14px;border:1px solid var(--bd)">
+      <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">${m.label}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  /* 범례 */
+  const legendItems = items.map(it =>
+    `<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2)">
+      <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="${it.pal.line}" stroke-width="2.5"></line></svg>
+      ${it.pal.id} · ${it.name}
+    </div>`).join('');
+
+  const cmpChartId = `${page}-cmp-chart`;
+  const cmpTableId = `${page}-cmp-tbl`;
+
+  resultEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:${periodCols};gap:10px;margin-bottom:14px">${periodCards}</div>
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px">일평균 지표 비교</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">${metricCards}</div>
+
+    <!-- 그래프 모드 탭 -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--bd);padding-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--t2)">일별 추이 비교</div>
+      <div style="display:flex;gap:2px;background:var(--sf2);border-radius:8px;padding:2px;margin-left:4px" id="${page}-view-tabs">
+        <button class="tb on" onclick="cmpSwitchView('${page}','merged',this)">통합 비교</button>
+        <button class="tb" onclick="cmpSwitchView('${page}','individual',this)">개별 그래프</button>
+      </div>
+      <span style="font-size:11px;color:var(--t3)">(X축: 게시 후 N일차)</span>
+    </div>
+
+    <!-- 통합 비교 영역 -->
+    <div id="${page}-view-merged">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+        <div style="display:flex;gap:2px;background:var(--sf2);border-radius:8px;padding:2px" id="${page}-cmp-tabs">
+          <button class="tb on" onclick="cmpSwitchMetric('${page}','uv',this)">UV</button>
+          <button class="tb" onclick="cmpSwitchMetric('${page}','pv',this)">PV</button>
+          <button class="tb" onclick="cmpSwitchMetric('${page}','rev',this)">매출</button>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="bsm" onclick="cmpSaveImage('${page}')">📷 이미지 저장</button>
+          <button class="bsm" onclick="cmpDownloadExcel('${page}')">⬇ 엑셀</button>
+        </div>
+      </div>
+      <div style="background:var(--sf2);border-radius:12px;padding:12px 16px;border:1px solid var(--bd);margin-bottom:8px">
+        <canvas id="${cmpChartId}" height="90"></canvas>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:4px">${legendItems}</div>
+    </div>
+
+    <!-- 개별 그래프 영역 -->
+    <div id="${page}-view-individual" style="display:none">
+      <div id="${page}-indiv-charts"></div>
+    </div>
+
+    <div id="${cmpTableId}" style="display:none"></div>
+  `;
+
+  /* 캐시 & 초기 통합 차트 */
+  window[`_cmpItems_${page}`] = items;
+  window[`_cmpIndivCharts_${page}`] = {};
+  /* 개별 그래프 렌더 캐시 초기화 (배너 변경 시 재빌드) */
+  const indivEl = document.getElementById(`${page}-indiv-charts`);
+  if(indivEl) delete indivEl.dataset.rendered;
+  drawCmpChart(page, items, 'uv');
+}
+
+/* ── 통합/개별 뷰 전환 ── */
+function cmpSwitchView(page, mode, btn) {
+  btn.closest(`#${page}-view-tabs`).querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const mergedEl    = document.getElementById(`${page}-view-merged`);
+  const individualEl = document.getElementById(`${page}-view-individual`);
+  if(!mergedEl || !individualEl) return;
+
+  if(mode === 'merged') {
+    mergedEl.style.display = '';
+    individualEl.style.display = 'none';
+  } else {
+    mergedEl.style.display = 'none';
+    individualEl.style.display = '';
+    renderCmpIndividual(page);
+  }
+}
+
+/* ── 개별 그래프 렌더 ── */
+function renderCmpIndividual(page) {
+  const items = window[`_cmpItems_${page}`];
+  const container = document.getElementById(`${page}-indiv-charts`);
+  if(!items || !container) return;
+
+  /* 이미 렌더됐으면 스킵 (차트 인스턴스 재사용) */
+  if(container.dataset.rendered === 'true') return;
+  container.dataset.rendered = 'true';
+
+  const gridCols = items.length <= 2 ? `repeat(${items.length},1fr)` : `repeat(2,1fr)`;
+  container.innerHTML = `<div style="display:grid;grid-template-columns:${gridCols};gap:10px">` +
+    items.map((it, i) => `
+    <div style="background:var(--sf2);border-radius:12px;padding:12px 14px;border:1px solid var(--bd)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0">
+          <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${it.pal.bg};color:${it.pal.text};flex-shrink:0">${it.pal.id}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.name}</span>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="bsm" style="font-size:10px;padding:3px 7px" onclick="cmpIndivSaveImage('${page}',${i})">📷</button>
+          <button class="bsm" style="font-size:10px;padding:3px 7px" onclick="cmpIndivExcel('${page}',${i})">⬇</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:5px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)"><div style="width:14px;height:2px;background:${it.pal.line}"></div>UV</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)"><div style="width:14px;height:2px;background:#34c759"></div>PV</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)"><div style="width:14px;height:2px;background:#ff9f0a"></div>매출(우)</div>
+      </div>
+      <canvas id="${page}-indiv-chart-${i}" height="140"></canvas>
+    </div>`).join('') + `</div>`;
+
+  /* 각 배너별 차트 그리기 */
+  window[`_cmpIndivCharts_${page}`] = {};
+  items.forEach((it, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(`${page}-indiv-chart-${i}`);
+      if(!el) return;
+      const labels = it.daily.map((_,j) => `${j+1}일차`);
+      const inst = new Chart(el.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {label:'UV',   data:it.daily.map(d=>d.uv),  borderColor:it.pal.line, backgroundColor:it.pal.line+'18', fill:false, tension:.35, pointRadius:it.daily.length>60?0:3, pointHoverRadius:5, borderWidth:2, yAxisID:'y'},
+            {label:'PV',   data:it.daily.map(d=>d.pv),  borderColor:'#34c759',   backgroundColor:'#34c75918',      fill:false, tension:.35, pointRadius:it.daily.length>60?0:3, pointHoverRadius:5, borderWidth:2, yAxisID:'y'},
+            {label:'매출', data:it.daily.map(d=>d.rev), borderColor:'#ff9f0a',   backgroundColor:'#ff9f0a18',      fill:false, tension:.35, pointRadius:it.daily.length>60?0:3, pointHoverRadius:5, borderWidth:2, yAxisID:'y2'},
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:true,
+          interaction:{mode:'index', intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{padding:8, cornerRadius:8, callbacks:{
+              title: ctx => ctx[0].label,
+              label: ctx => {
+                const lbl = ['UV','PV','매출'][ctx.datasetIndex];
+                const fmt = ctx.datasetIndex===2 ? NC : FC;
+                return ` ${lbl}: ${fmt(ctx.parsed.y)}`;
+              }
+            }}
+          },
+          scales:{
+            x:{grid:{display:false}, ticks:{font:{size:8}, color:'#86868b', maxTicksLimit:10, maxRotation:0}},
+            y:{position:'left',  grid:{color:'rgba(0,0,0,.05)'}, border:{display:false}, ticks:{font:{size:9}, color:'#86868b', maxTicksLimit:5, callback:v=>FM(v)}, title:{display:false}},
+            y2:{position:'right', grid:{display:false},          border:{display:false}, ticks:{font:{size:9}, color:'#ff9f0a', maxTicksLimit:5, callback:v=>FM(v)}, title:{display:false}}
+          }
+        }
+      });
+      window[`_cmpIndivCharts_${page}`][i] = inst;
+    }, 60 + i * 30);
+  });
+}
+
+/* ── 개별 그래프 이미지 저장 ── */
+function cmpIndivSaveImage(page, idx) {
+  const charts = window[`_cmpIndivCharts_${page}`];
+  const inst = charts && charts[idx];
+  if(!inst) { alert('차트가 아직 준비되지 않았습니다.'); return; }
+  const items = window[`_cmpItems_${page}`];
+  const name  = items && items[idx] ? items[idx].name.slice(0,20) : `${idx}`;
+  const pal   = items && items[idx] ? items[idx].pal.id : `${idx}`;
+  const url = inst.toBase64Image('image/png', 1);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `개별그래프_${pal}_${name}_${new Date().toISOString().slice(0,10)}.png`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ── 개별 그래프 엑셀 ── */
+function cmpIndivExcel(page, idx) {
+  const items = window[`_cmpItems_${page}`];
+  const it = items && items[idx];
+  if(!it) { alert('데이터가 없습니다.'); return; }
+
+  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+  const headers = ['일차', 'UV', 'PV', '매출'];
+  let csv = '\uFEFF' + headers.map(esc).join(',') + '\n';
+  it.daily.forEach((d,i) => {
+    csv += [esc(`${i+1}일차`), Math.round(d.uv), Math.round(d.pv), Math.round(d.rev)].join(',') + '\n';
+  });
+  /* 일평균 행 */
+  csv += [esc('일평균'), it.avgData.avgUV.toFixed(1), it.avgData.avgPV.toFixed(1), it.avgData.avgRev.toFixed(0)].join(',') + '\n';
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `개별그래프_${it.pal.id}_${it.name.slice(0,20)}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ── 지표 탭 전환 ── */
+function cmpSwitchMetric(page, metric, btn) {
+  btn.closest(`#${page}-cmp-tabs`).querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  cmpState[page].metric = metric;
+  const items = window[`_cmpItems_${page}`];
+  if(items) drawCmpChart(page, items, metric);
+}
+
+/* ── 차트 그리기 ── */
+function drawCmpChart(page, items, metric) {
+  const st = cmpState[page];
+  if(st.chartInst) { st.chartInst.destroy(); st.chartInst=null; }
+
+  const maxLen = Math.max(...items.map(it=>it.daily.length));
+  const labels = Array.from({length:maxLen}, (_,i)=>`${i+1}일차`);
+  const fmtFn = metric==='rev' ? NC : FC;
+
+  const datasets = items.map(it => ({
+    label: `${it.pal.id} (${it.name})`,
+    data: it.daily.map(d=>d[metric]),
+    borderColor: it.pal.line,
+    backgroundColor: it.pal.line + '15',
+    fill: false,
+    tension: .35,
+    borderDash: it.pal.dash,
+    pointRadius: it.daily.length > 60 ? 0 : 3,
+    pointHoverRadius: 5,
+    borderWidth: 2.5,
+    spanGaps: true
+  }));
+
+  const el = document.getElementById(`${page}-cmp-chart`);
+  if(!el) return;
+  setTimeout(() => {
+    st.chartInst = new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        interaction: {mode:'index', intersect:false},
+        plugins: {
+          legend: {display:false},
+          tooltip: {
+            padding:10, cornerRadius:8,
+            callbacks:{
+              title: ctx => ctx[0].label,
+              label: ctx => ` ${items[ctx.datasetIndex].pal.id}: ${fmtFn(ctx.parsed.y)}`
+            }
+          }
+        },
+        scales: {
+          x: {grid:{display:false}, ticks:{font:{size:9}, color:'#86868b', maxTicksLimit:20, maxRotation:0}},
+          y: {grid:{color:'rgba(0,0,0,.05)'}, border:{display:false},
+              ticks:{font:{size:10}, color:'#86868b', callback: v=>FM(v)}}
+        }
+      }
+    });
+  }, 50);
+}
+
+/* ── 이미지 저장 ── */
+function cmpSaveImage(page) {
+  const st = cmpState[page];
+  if(!st.chartInst) { alert('차트가 없습니다.'); return; }
+  const metric = st.metric || 'uv';
+  const metricLabel = {uv:'UV',pv:'PV',rev:'매출'}[metric];
+  const names = (window[`_cmpItems_${page}`]||[]).map(it=>it.pal.id).join('_');
+  const url = st.chartInst.toBase64Image('image/png', 1);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `배너비교_${metricLabel}_${names}_${new Date().toISOString().slice(0,10)}.png`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ── 엑셀(CSV) 다운로드 ── */
+function cmpDownloadExcel(page) {
+  const items = window[`_cmpItems_${page}`];
+  if(!items||!items.length) { alert('데이터가 없습니다.'); return; }
+
+  const maxLen = Math.max(...items.map(it=>it.daily.length));
+  const headers = ['일차', ...items.flatMap(it=>[`${it.pal.id}_UV(${it.name})`,`${it.pal.id}_PV`,`${it.pal.id}_매출`])];
+  const rows = [];
+  for(let i=0; i<maxLen; i++) {
+    const row = [`${i+1}일차`];
+    items.forEach(it => {
+      const d = it.daily[i];
+      row.push(d ? Math.round(d.uv) : '', d ? Math.round(d.pv) : '', d ? Math.round(d.rev) : '');
+    });
+    rows.push(row);
+  }
+  /* 일평균 행 추가 */
+  const avgRow = ['일평균'];
+  items.forEach(it => {
+    avgRow.push(it.avgData.avgUV.toFixed(1), it.avgData.avgPV.toFixed(1), it.avgData.avgRev.toFixed(0));
+  });
+  rows.push(avgRow);
+
+  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+  let csv = '\uFEFF' + headers.map(esc).join(',') + '\n';
+  rows.forEach(r => { csv += r.map(esc).join(',') + '\n'; });
+
+  const names = items.map(it=>it.pal.id).join('');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `배너비교_${names}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ── 페이지 로드 후 초기 슬롯 생성 ── */
+function initCmpSections() {
+  cmpInit('p2');
+  cmpInit('p4');
+}
+
 (async () => {
   try {
     const saved = localStorage.getItem('dashCfg');
     if(saved) { const s=JSON.parse(saved); if(s.sid) CFG=s; }
   } catch(e){}
   await loadAll();
+  initCmpSections();
 })();
 
 </script>
