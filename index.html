@@ -3214,6 +3214,7 @@ const cmpState = {
   p2: { slots:[], chartInst:null, metric:'uv' },
   p4: { slots:[], chartInst:null, metric:'uv' },
 };
+let cmpDrag = null;
 
 /* ── 초기화: 기본 4개 입력란(A·B·C·D) 생성 ── */
 function cmpInit(page) {
@@ -3241,6 +3242,7 @@ function cmpAddSlot(page) {
   div.innerHTML = `
     <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:5px;display:flex;align-items:center;gap:6px">
       <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${pal.bg};color:${pal.text};font-size:10px;font-weight:700">${pal.id}</span>
+      <span draggable="true" ondragstart="cmpDragStart('${page}',${idx},event)" ondragend="cmpDragEnd('${page}')" title="드래그하여 순서 변경" style="margin-left:auto;cursor:grab;color:var(--t3);font-size:13px;line-height:1;user-select:none;padding:2px 5px;border-radius:6px">⠿</span>
     </div>
     <div style="position:relative">
       <input id="${page}cmp-inp-${idx}" type="text" placeholder="배너명 검색..." autocomplete="off"
@@ -3253,6 +3255,60 @@ function cmpAddSlot(page) {
       <div id="${page}cmp-drop-${idx}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:180px;overflow-y:auto;z-index:200;font-size:12px"></div>
     </div>`;
   slotsEl.appendChild(div);
+
+  /* 드래그 앤 드롭으로 순서 변경 */
+  div.addEventListener('dragover', e => { e.preventDefault(); div.style.outline = `2px dashed ${pal.line}`; div.style.outlineOffset = '2px'; });
+  div.addEventListener('dragleave', () => { div.style.outline = ''; });
+  div.addEventListener('drop', e => { e.preventDefault(); div.style.outline = ''; cmpDrop(page, idx, e); });
+}
+
+/* ── 슬롯 순서 드래그 ── */
+function cmpDragStart(page, idx, e) {
+  cmpDrag = { page, from: idx };
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(idx)); } catch(_) {}
+  const slot = document.getElementById(`${page}cmp-slot-${idx}`);
+  if(slot) {
+    if(e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(slot, 20, 20);
+    setTimeout(() => { slot.style.opacity = '0.45'; }, 0);
+  }
+}
+function cmpDragEnd(page) {
+  for(let i=0;i<4;i++) {
+    const el = document.getElementById(`${page}cmp-slot-${i}`);
+    if(el) { el.style.outline=''; el.style.opacity=''; }
+  }
+  cmpDrag = null;
+}
+function cmpDrop(page, to, e) {
+  if(!cmpDrag || cmpDrag.page !== page) return;
+  const from = cmpDrag.from;
+  cmpDrag = null;
+  if(from === to) return;
+  const names = cmpState[page].slots.map(s => s.name);
+  const moved = names.splice(from, 1)[0];
+  names.splice(to, 0, moved);
+  cmpApplyNames(page, names);
+}
+/* 주어진 순서(names)로 4개 슬롯 재구성 (색상·라벨 A~D는 위치 고정) */
+function cmpApplyNames(page, names) {
+  const st = cmpState[page];
+  const slotsEl = document.getElementById(`${page}cmp-slots`);
+  if(!slotsEl) return;
+  slotsEl.innerHTML = '';
+  st.slots = [];
+  for(let i=0;i<4;i++) cmpAddSlot(page);
+  names.forEach((nm, i) => {
+    if(!nm) return;
+    st.slots[i].name = nm;
+    const inp = document.getElementById(`${page}cmp-inp-${i}`);
+    if(inp) inp.value = nm;
+    const clr = document.getElementById(`${page}cmp-clear-${i}`);
+    const car = document.getElementById(`${page}cmp-caret-${i}`);
+    if(clr) clr.style.display = '';
+    if(car) car.style.display = 'none';
+  });
+  cmpTryRender(page);
 }
 
 /* ── 드롭다운 ── */
@@ -3394,15 +3450,8 @@ function renderCmpResult(page) {
   }
 
   /* ── 통합 비교 표 (배너명·노출일수·노출기간·일평균 UV/PV/매출) ── */
-  /* 컬럼별 최댓값 → 최고 성과 셀 강조용 */
-  const cmpMax = {
-    dayCount: Math.max(...items.map(it => it.avgData.dayCount)),
-    avgUV:    Math.max(...items.map(it => it.avgData.avgUV)),
-    avgPV:    Math.max(...items.map(it => it.avgData.avgPV)),
-    avgRev:   Math.max(...items.map(it => it.avgData.avgRev)),
-  };
-  const valCell = (it, raw, txt, isMax) =>
-    `<td style="padding:9px 12px;text-align:right;font-variant-numeric:tabular-nums;${isMax && items.length>1 ? `font-weight:700;color:${it.pal.text}` : 'color:var(--t1)'}">${txt}${isMax && items.length>1 ? ` <span style="font-size:9px;color:${it.pal.text}">▲</span>` : ''}</td>`;
+  const numCell = txt =>
+    `<td style="padding:9px 12px;text-align:right;color:var(--t1);font-variant-numeric:tabular-nums">${txt}</td>`;
   const summaryRows = items.map(it => {
     const d = it.avgData;
     return `<tr style="border-bottom:1px solid rgba(0,0,0,.05)">
@@ -3411,11 +3460,11 @@ function renderCmpResult(page) {
           <span style="width:10px;height:10px;border-radius:3px;background:${it.pal.line};flex-shrink:0"></span>${it.name}
         </span>
       </td>
-      ${valCell(it, d.dayCount, `${d.dayCount}일`, d.dayCount===cmpMax.dayCount)}
+      ${numCell(`${d.dayCount}일`)}
       <td style="padding:9px 12px;text-align:right;color:var(--t2);font-variant-numeric:tabular-nums">${fmtD(d.startDate)} ~ ${fmtD(d.endDate)}</td>
-      ${valCell(it, d.avgUV,  FC(d.avgUV),  d.avgUV===cmpMax.avgUV)}
-      ${valCell(it, d.avgPV,  FC(d.avgPV),  d.avgPV===cmpMax.avgPV)}
-      ${valCell(it, d.avgRev, NC(d.avgRev), d.avgRev===cmpMax.avgRev)}
+      ${numCell(FC(d.avgUV))}
+      ${numCell(FC(d.avgPV))}
+      ${numCell(NC(d.avgRev))}
     </tr>`;
   }).join('');
   const thStyle = 'padding:10px 12px;font-size:11px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--bd);background:var(--sf2);position:static';
@@ -3447,7 +3496,10 @@ function renderCmpResult(page) {
   const cmpTableId = `${page}-cmp-tbl`;
 
   resultEl.innerHTML = `
-    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px">배너별 지표 비교</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div style="font-size:12px;font-weight:700;color:var(--t2)">배너별 지표 비교</div>
+      <button class="bsm" onclick="cmpSummaryExcel('${page}')">⬇ 엑셀 다운로드</button>
+    </div>
     ${summaryTable}
 
     <!-- 그래프 모드 탭 -->
@@ -3735,6 +3787,34 @@ function cmpDownloadExcel(page) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `배너비교_${names}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ── 배너별 지표 비교 표: 엑셀(CSV) 다운로드 ── */
+function cmpSummaryExcel(page) {
+  const items = window[`_cmpItems_${page}`];
+  if(!items || !items.length) { alert('데이터가 없습니다.'); return; }
+  const headers = ['배너명','노출 일수','노출 기간','일평균 UV','일평균 PV','일평균 매출'];
+  const rows = items.map(it => {
+    const d = it.avgData;
+    return [
+      it.name,
+      d.dayCount,
+      `${d.startDate} ~ ${d.endDate}`,
+      Math.round(d.avgUV),
+      Math.round(d.avgPV),
+      Math.round(d.avgRev),
+    ];
+  });
+  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+  let csv = '\uFEFF' + headers.map(esc).join(',') + '\n';
+  rows.forEach(r => { csv += r.map(esc).join(',') + '\n'; });
+  const tag = items.map(it=>it.pal.id).join('');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `배너별지표비교_${tag}_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
