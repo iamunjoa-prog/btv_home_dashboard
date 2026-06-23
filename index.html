@@ -151,6 +151,15 @@ tbody td:first-child{text-align:left;font-weight:500}
 .rs td:first-child{padding-left:20px;color:var(--t2);font-weight:400}
 .rb td:first-child{padding-left:36px;color:var(--t3);font-size:11px;font-weight:400}
 .sc{font-weight:700!important;color:var(--blue)!important}
+/* 2열 고정 (① 주간 실적 Summary 표) */
+table.freeze2 th.fz1,table.freeze2 td.fz1{position:sticky;left:0;z-index:5}
+table.freeze2 th.fz1{background:#f0f4ff}
+table.freeze2 td.fz1{background:var(--sf)}
+table.freeze2 th.fz2,table.freeze2 td.fz2{position:sticky;left:var(--c1w,120px);z-index:4;box-shadow:inset -1px 0 0 var(--bd)}
+table.freeze2 th.fz2{background:#f0f4ff}
+table.freeze2 td.fz2{background:var(--sf)}
+table.freeze2 tbody tr:hover td.fz1,table.freeze2 tbody tr:hover td.fz2{background:var(--sf2)}
+table.freeze2 td[colspan]{position:static!important}
 .pos{color:var(--blue);font-weight:700}
 .neg{color:var(--red);font-weight:700}
 .ntag{color:var(--purple);font-weight:700}
@@ -357,7 +366,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
         <button class="bsm" onclick="excelDown('t2s','TDB_주간Summary')">⬇ 엑셀</button>
       </div>
     </div>
-    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t2s"></table></div></div>
+    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t2s" class="freeze2"></table></div></div>
     <div class="sec">② 선택 주차 배너 랭킹 <span class="sec-b" id="t2wl"></span></div>
     <div class="tbar">
       <button class="tb on" onclick="t2tb('all',this)">📊 전체</button>
@@ -415,10 +424,9 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <span>⑤ 배너 Data 비교 <span class="sec-b">최대 4개 · 게시 후 N일차 기준</span></span>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div id="p2cmp-slots" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px"></div>
+      <div id="p2cmp-slots" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px"></div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <button class="bsm" onclick="cmpAddSlot('p2')" id="p2cmp-add-btn">+ 배너 추가</button>
-        <button class="bsm" onclick="cmpReset('p2')">✕ 초기화</button>
+        <button class="bsm" onclick="cmpReset('p2')">✕ 전체 초기화</button>
         <span style="font-size:11px;color:var(--t3);margin-left:4px" id="p2cmp-hint">배너를 2개 이상 선택하면 비교합니다.</span>
       </div>
       <div id="p2cmp-result">
@@ -439,7 +447,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
         <button class="bsm" onclick="excelDown('t3s','블록_주간Summary')">⬇ 엑셀</button>
       </div>
     </div>
-    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t3s"></table></div></div>
+    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t3s" class="freeze2"></table></div></div>
     <div class="sec">② 주차별 블록 랭킹 <span class="sec-b" id="t3wl"></span></div>
     <div class="tbar">
       <button class="tb on" onclick="t3tb('all',this)">📊 전체</button>
@@ -494,7 +502,7 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <span>① 주간 실적 Summary</span>
       <button class="bsm" onclick="excelDown('t4s','배너_주간Summary')">⬇ 엑셀</button>
     </div>
-    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t4s"></table></div></div>
+    <div class="card" style="margin-bottom:12px"><div class="tw"><table id="t4s" class="freeze2"></table></div></div>
     <div class="sec">② 주차별 배너 랭킹 <span class="sec-b" id="t4wl"></span></div>
     <div class="tbar" id="t4tbar"></div>
     <div class="card" style="margin-bottom:12px">
@@ -544,10 +552,9 @@ thead th.sel { background:#e0eaff !important; color:var(--blue) !important; }
       <span>⑤ 배너 Data 비교 <span class="sec-b">최대 4개 · 게시 후 N일차 기준</span></span>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div id="p4cmp-slots" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px"></div>
+      <div id="p4cmp-slots" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px"></div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <button class="bsm" onclick="cmpAddSlot('p4')" id="p4cmp-add-btn">+ 배너 추가</button>
-        <button class="bsm" onclick="cmpReset('p4')">✕ 초기화</button>
+        <button class="bsm" onclick="cmpReset('p4')">✕ 전체 초기화</button>
         <span style="font-size:11px;color:var(--t3);margin-left:4px" id="p4cmp-hint">배너를 2개 이상 선택하면 비교합니다.</span>
       </div>
       <div id="p4cmp-result">
@@ -718,7 +725,21 @@ function goPage(id, btn) {
   /* 콘텐츠 영역 스크롤 맨 위로 */
   const ca = document.getElementById('content-area');
   if(ca) ca.scrollTop = 0;
+  /* 표시된 페이지의 2열 고정 너비 재측정 */
+  requestAnimationFrame(applyFreeze2All);
 }
+
+/* ── ① 주간 실적 Summary 표: 2열 고정 (1열 실제 너비 측정 → 2열 left 설정) ── */
+function applyFreeze2(tableId) {
+  const tbl = document.getElementById(tableId);
+  if(!tbl) return;
+  const head = tbl.querySelector('th.fz1');
+  if(!head) return;
+  const w = head.getBoundingClientRect().width;
+  if(w > 0) tbl.style.setProperty('--c1w', Math.round(w) + 'px');
+}
+function applyFreeze2All() { ['t2s','t3s','t4s'].forEach(applyFreeze2); }
+window.addEventListener('resize', applyFreeze2All);
 
 /* ═══════════════════════════════════════
    SIDEBAR — Year › Month › Week 트리
@@ -1430,7 +1451,7 @@ function rT2Sum() {
   const li = ti2; // 선택 주차 인덱스
 
   let h=`<thead><tr>
-    <th>구분</th><th style="text-align:center">상세 구분</th>
+    <th class="fz1">구분</th><th class="fz2" style="text-align:center">상세 구분</th>
     ${TDB.weeks.map((w,i)=>`<th${i===ti2?' class="sel"':''} style="text-align:right">
       ${w}<div style="font-size:10px;font-weight:400;opacity:.8;margin-top:2px">${wkDateRange(w)}</div>
     </th>`).join('')}
@@ -1453,8 +1474,8 @@ function rT2Sum() {
         : '-';
 
       h+=`<tr>
-        <td${ti===0?` style="font-weight:700;border-right:1px solid var(--bd)" rowspan="3"`:'style="display:none"'}>${ti===0?sec.label:''}</td>
-        <td style="color:${tp.color};font-weight:600;text-align:center">${tp.label}</td>
+        <td class="fz1"${ti===0?` style="font-weight:700;border-right:1px solid var(--bd)" rowspan="3"`:'style="display:none"'}>${ti===0?sec.label:''}</td>
+        <td class="fz2" style="color:${tp.color};font-weight:600;text-align:center">${tp.label}</td>
         ${v.map((x,i)=>`<td${i===ti2?' class="sc"':''}>${sec.isI?N(x):FC(x)}</td>`).join('')}
         <td style="text-align:right">${wowAbsHtml}</td>
         <td style="text-align:right">${wowPctHtml}</td>
@@ -1463,6 +1484,7 @@ function rT2Sum() {
     h+=`<tr><td colspan="${TDB.weeks.length+4}" style="height:6px;background:var(--sf2)"></td></tr>`;
   });
   if(document.getElementById('t2s')) document.getElementById('t2s').innerHTML = h+'</tbody>';
+  applyFreeze2('t2s');
 }
 
 /* 배너명에서 모수 파싱 (타겟/250만, 타겟/0.5천 등) */
@@ -1669,7 +1691,7 @@ function rT3Sum() {
   const rowspan = CB_RULES.length + 1; // 전체 + 분류별
 
   let h=`<thead><tr>
-    <th>구분</th><th>상세</th>
+    <th class="fz1">구분</th><th class="fz2">상세</th>
     ${CB.weeks.map((w,i)=>`<th${i===ti3?' class="sel"':''} style="text-align:right">
       ${w}<div style="font-size:10px;font-weight:400;opacity:.8;margin-top:2px">${wkDateRange(w)}</div>
     </th>`).join('')}
@@ -1691,8 +1713,8 @@ function rT3Sum() {
     const {absH:tA,pctH:tP}=mkWow(tv);
 
     h+=`<tr class="rh">
-      <td rowspan="${rowspan}" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
-      <td style="font-weight:700">전체</td>
+      <td class="fz1" rowspan="${rowspan}" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
+      <td class="fz2" style="font-weight:700">전체</td>
       ${tv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
       <td style="text-align:right">${tA}</td><td style="text-align:right">${tP}</td>
     </tr>`;
@@ -1701,7 +1723,7 @@ function rT3Sum() {
       const rv=CB.weeks.map(w=>sm[rule.key][w][sec.key]||0);
       const {absH,pctH}=mkWow(rv);
       h+=`<tr>
-        <td style="padding-left:18px;color:${rule.color};font-weight:600">${rule.label}</td>
+        <td class="fz2" style="padding-left:18px;color:${rule.color};font-weight:600">${rule.label}</td>
         ${rv.map((v,i)=>`<td${i===ti3?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
         <td style="text-align:right">${absH}</td><td style="text-align:right">${pctH}</td>
       </tr>`;
@@ -1709,6 +1731,7 @@ function rT3Sum() {
     h+=`<tr><td colspan="${CB.weeks.length+4}" style="height:6px;background:var(--sf2)"></td></tr>`;
   });
   if(document.getElementById('t3s')) document.getElementById('t3s').innerHTML=h+'</tbody>';
+  applyFreeze2('t3s');
 }
 
 function t3tb(t,btn) { tt3=t; btn.closest('.tbar').querySelectorAll('.tb').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); rT3Rank(); }
@@ -2172,7 +2195,7 @@ function rT4Sum() {
   const rowspan=BN_RULES.length+1;
 
   let h=`<thead><tr>
-    <th>구분</th><th>상세</th>
+    <th class="fz1">구분</th><th class="fz2">상세</th>
     ${CB.weeks.map((w,i)=>`<th${i===ti4?' class="sel"':''} style="text-align:right">
       ${w}<div style="font-size:10px;font-weight:400;opacity:.8;margin-top:2px">${wkDateRange(w)}</div>
     </th>`).join('')}
@@ -2191,8 +2214,8 @@ function rT4Sum() {
     };
     const {absH:tA,pctH:tP}=mkWow(tv);
     h+=`<tr class="rh">
-      <td rowspan="${rowspan}" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
-      <td style="font-weight:700">전체</td>
+      <td class="fz1" rowspan="${rowspan}" style="border-right:1px solid var(--bd);font-weight:700">${sec.label}</td>
+      <td class="fz2" style="font-weight:700">전체</td>
       ${tv.map((v,i)=>`<td${i===ti4?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
       <td style="text-align:right">${tA}</td><td style="text-align:right">${tP}</td>
     </tr>`;
@@ -2200,7 +2223,7 @@ function rT4Sum() {
       const rv=CB.weeks.map(w=>sm[rule.key][w][sec.key]||0);
       const {absH,pctH}=mkWow(rv);
       h+=`<tr>
-        <td style="padding-left:18px;color:${rule.color};font-weight:600">${rule.label}</td>
+        <td class="fz2" style="padding-left:18px;color:${rule.color};font-weight:600">${rule.label}</td>
         ${rv.map((v,i)=>`<td${i===ti4?' class="sc"':''}>${sec.isI?N(v):FC(v)}</td>`).join('')}
         <td style="text-align:right">${absH}</td><td style="text-align:right">${pctH}</td>
       </tr>`;
@@ -2208,6 +2231,7 @@ function rT4Sum() {
     h+=`<tr><td colspan="${CB.weeks.length+4}" style="height:6px;background:var(--sf2)"></td></tr>`;
   });
   if(document.getElementById('t4s')) document.getElementById('t4s').innerHTML=h+'</tbody>';
+  applyFreeze2('t4s');
 }
 
 function rT4Rank() {
@@ -3191,16 +3215,15 @@ const cmpState = {
   p4: { slots:[], chartInst:null, metric:'uv' },
 };
 
-/* ── 초기화: 페이지 로드 후 슬롯 2개 생성 ── */
+/* ── 초기화: 기본 4개 입력란(A·B·C·D) 생성 ── */
 function cmpInit(page) {
   cmpState[page].slots = [];
   cmpState[page].chartInst = null;
   cmpState[page].metric = 'uv';
   const slotsEl = document.getElementById(`${page}cmp-slots`);
   if(slotsEl) slotsEl.innerHTML = '';
-  // 기본 2개 슬롯
-  cmpAddSlot(page);
-  cmpAddSlot(page);
+  // 기본 4개 입력란
+  for(let i=0;i<4;i++) cmpAddSlot(page);
 }
 
 /* ── 슬롯 추가 (최대 4개) ── */
@@ -3218,48 +3241,18 @@ function cmpAddSlot(page) {
   div.innerHTML = `
     <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:5px;display:flex;align-items:center;gap:6px">
       <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${pal.bg};color:${pal.text};font-size:10px;font-weight:700">${pal.id}</span>
-      ${idx >= 2
-        ? `<button onclick="cmpRemoveSlot('${page}',${idx})" style="margin-left:auto;font-size:11px;color:var(--t3);border:none;background:transparent;cursor:pointer;padding:2px 4px;line-height:1" title="슬롯 제거">✕ 제거</button>`
-        : `<button id="${page}cmp-clear-${idx}" onclick="cmpClearSlot('${page}',${idx})" style="display:none;margin-left:auto;font-size:11px;color:var(--t3);border:none;background:transparent;cursor:pointer;padding:2px 4px;line-height:1" title="선택 취소">✕</button>`
-      }
     </div>
     <div style="position:relative">
       <input id="${page}cmp-inp-${idx}" type="text" placeholder="배너명 검색..." autocomplete="off"
         style="width:100%;padding:7px 32px 7px 10px;border:1px solid var(--bd);border-radius:9px;font-size:12px;font-family:inherit;color:var(--t1);background:var(--sf2);outline:none;transition:border-color .15s;box-sizing:border-box"
         onfocus="this.style.borderColor='${pal.line}';cmpShowDrop('${page}',${idx})"
         oninput="cmpFilter('${page}',${idx},this.value)"
-        onblur="setTimeout(()=>cmpHideDrop('${page}',${idx}),180)">
-      <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px;pointer-events:none">▾</span>
+        onblur="this.style.borderColor='var(--bd)';setTimeout(()=>cmpHideDrop('${page}',${idx}),180)">
+      <span id="${page}cmp-caret-${idx}" style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:12px;pointer-events:none">▾</span>
+      <button id="${page}cmp-clear-${idx}" onmousedown="event.preventDefault()" onclick="cmpClearSlot('${page}',${idx})" title="선택 취소" style="display:none;position:absolute;right:5px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer;color:var(--t3);font-size:13px;line-height:1;padding:3px 6px;border-radius:6px">✕</button>
       <div id="${page}cmp-drop-${idx}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:180px;overflow-y:auto;z-index:200;font-size:12px"></div>
     </div>`;
   slotsEl.appendChild(div);
-
-  /* 4개 꽉 찼으면 추가 버튼 숨김 */
-  const addBtn = document.getElementById(`${page}cmp-add-btn`);
-  if(addBtn) addBtn.style.display = st.slots.length >= 4 ? 'none' : '';
-}
-
-/* ── 슬롯 제거 (C/D만 가능) ── */
-function cmpRemoveSlot(page, idx) {
-  const st = cmpState[page];
-  st.slots.splice(idx, 1);
-  /* DOM 전체 재빌드 */
-  const slotsEl = document.getElementById(`${page}cmp-slots`);
-  slotsEl.innerHTML = '';
-  const backup = st.slots.map(s=>s.name);
-  st.slots = [];
-  backup.forEach(name => {
-    cmpAddSlot(page);
-    const newIdx = st.slots.length - 1;
-    if(name) {
-      st.slots[newIdx].name = name;
-      const inp = document.getElementById(`${page}cmp-inp-${newIdx}`);
-      if(inp) inp.value = name;
-    }
-  });
-  const addBtn = document.getElementById(`${page}cmp-add-btn`);
-  if(addBtn) addBtn.style.display = st.slots.length >= 4 ? 'none' : '';
-  cmpTryRender(page);
 }
 
 /* ── 드롭다운 ── */
@@ -3314,23 +3307,26 @@ function cmpSelect(page, idx, name) {
   if(inp) inp.value = name;
   cmpHideDrop(page, idx);
   cmpState[page].slots[idx].name = name;
-  /* A/B 슬롯 ✕ 버튼 표시 */
-  if(idx < 2) {
-    const clrBtn = document.getElementById(`${page}cmp-clear-${idx}`);
-    if(clrBtn) clrBtn.style.display = '';
-  }
+  /* 선택됨 → 입력란 ✕ 표시, ▾ 숨김 */
+  const clrBtn = document.getElementById(`${page}cmp-clear-${idx}`);
+  const caret  = document.getElementById(`${page}cmp-caret-${idx}`);
+  if(clrBtn) clrBtn.style.display = '';
+  if(caret)  caret.style.display = 'none';
   cmpTryRender(page);
 }
 
-/* A/B 슬롯 선택값만 취소 (슬롯은 유지) */
+/* 선택 취소 (입력란 유지 → 바로 재선택) */
 function cmpClearSlot(page, idx) {
   const inp = document.getElementById(`${page}cmp-inp-${idx}`);
   if(inp) inp.value = '';
   const clrBtn = document.getElementById(`${page}cmp-clear-${idx}`);
+  const caret  = document.getElementById(`${page}cmp-caret-${idx}`);
   if(clrBtn) clrBtn.style.display = 'none';
-  cmpHideDrop(page, idx);
+  if(caret)  caret.style.display = '';
   if(cmpState[page].slots[idx]) cmpState[page].slots[idx].name = null;
   cmpTryRender(page);
+  /* 바로 다른 배너를 고를 수 있게 입력란 포커스(목록 표시) */
+  if(inp) inp.focus();
 }
 
 /* ── 선택된 배너가 2개 이상이면 렌더 ── */
@@ -3354,8 +3350,6 @@ function cmpReset(page) {
   const resultEl = document.getElementById(`${page}cmp-result`);
   if(resultEl) resultEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">배너를 2개 이상 선택하면 지표를 비교합니다.</div>`;
   cmpInit(page);
-  /* A/B ✕ 버튼 숨김 */
-  [0,1].forEach(i=>{ const b=document.getElementById(`${page}cmp-clear-${i}`); if(b) b.style.display='none'; });
 }
 
 /* ── 일별 데이터 N일차 추출 ── */
@@ -3399,38 +3393,48 @@ function renderCmpResult(page) {
     return;
   }
 
-  /* 게시기간 카드 */
-  const periodCols = items.length <= 2 ? `repeat(${items.length},1fr)` : `repeat(2,1fr)`;
-  const periodCards = items.map(it => `
-    <div style="background:${it.pal.bg};border-radius:10px;padding:10px 14px">
-      <div style="font-size:10px;font-weight:700;color:${it.pal.text};margin-bottom:3px">${it.pal.id} · ${it.name}</div>
-      <div style="font-size:12px;color:${it.pal.text}">${fmtD(it.avgData.startDate)} ~ ${fmtD(it.avgData.endDate)}</div>
-      <div style="font-size:11px;color:${it.pal.line};margin-top:2px">총 ${it.avgData.dayCount}일 운영</div>
-    </div>`).join('');
-
-  /* 일평균 지표 카드 */
-  const metrics = [
-    {key:'uv',  label:'일평균 UV',   fmt:FC},
-    {key:'pv',  label:'일평균 PV',   fmt:FC},
-    {key:'rev', label:'일평균 매출', fmt:NC},
-  ];
-  const metricCards = metrics.map(m => {
-    const vals = items.map(it => it.avgData[m.key==='rev'?'avgRev':m.key==='uv'?'avgUV':'avgPV']);
-    const maxVal = Math.max(...vals);
-    const rows = items.map((it,i) => {
-      const v = vals[i];
-      const isWin = Math.abs(v - maxVal) < 0.01 && items.length > 1;
-      return `<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
-        <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${it.pal.bg};color:${it.pal.text};flex-shrink:0">${it.pal.id}</span>
-        <span style="font-size:15px;font-weight:700;color:${it.pal.text}">${m.fmt(v)}</span>
-        ${isWin ? `<span style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;background:${it.pal.bg};color:${it.pal.text}">▲</span>` : ''}
-      </div>`;
-    }).join('');
-    return `<div style="background:var(--sf2);border-radius:12px;padding:12px 14px;border:1px solid var(--bd)">
-      <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">${m.label}</div>
-      ${rows}
-    </div>`;
+  /* ── 통합 비교 표 (배너명·노출일수·노출기간·일평균 UV/PV/매출) ── */
+  /* 컬럼별 최댓값 → 최고 성과 셀 강조용 */
+  const cmpMax = {
+    dayCount: Math.max(...items.map(it => it.avgData.dayCount)),
+    avgUV:    Math.max(...items.map(it => it.avgData.avgUV)),
+    avgPV:    Math.max(...items.map(it => it.avgData.avgPV)),
+    avgRev:   Math.max(...items.map(it => it.avgData.avgRev)),
+  };
+  const valCell = (it, raw, txt, isMax) =>
+    `<td style="padding:9px 12px;text-align:right;font-variant-numeric:tabular-nums;${isMax && items.length>1 ? `font-weight:700;color:${it.pal.text}` : 'color:var(--t1)'}">${txt}${isMax && items.length>1 ? ` <span style="font-size:9px;color:${it.pal.text}">▲</span>` : ''}</td>`;
+  const summaryRows = items.map(it => {
+    const d = it.avgData;
+    return `<tr style="border-bottom:1px solid rgba(0,0,0,.05)">
+      <td style="padding:9px 12px;text-align:left;position:static;background:transparent;font-weight:600;color:var(--t1)">
+        <span style="display:inline-flex;align-items:center;gap:7px">
+          <span style="width:10px;height:10px;border-radius:3px;background:${it.pal.line};flex-shrink:0"></span>${it.name}
+        </span>
+      </td>
+      ${valCell(it, d.dayCount, `${d.dayCount}일`, d.dayCount===cmpMax.dayCount)}
+      <td style="padding:9px 12px;text-align:right;color:var(--t2);font-variant-numeric:tabular-nums">${fmtD(d.startDate)} ~ ${fmtD(d.endDate)}</td>
+      ${valCell(it, d.avgUV,  FC(d.avgUV),  d.avgUV===cmpMax.avgUV)}
+      ${valCell(it, d.avgPV,  FC(d.avgPV),  d.avgPV===cmpMax.avgPV)}
+      ${valCell(it, d.avgRev, NC(d.avgRev), d.avgRev===cmpMax.avgRev)}
+    </tr>`;
   }).join('');
+  const thStyle = 'padding:10px 12px;font-size:11px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--bd);background:var(--sf2);position:static';
+  const summaryTable = `
+    <div style="overflow-x:auto;border:1px solid var(--bd);border-radius:12px;margin-bottom:18px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap">
+        <thead>
+          <tr>
+            <th style="${thStyle};text-align:left">배너명</th>
+            <th style="${thStyle};text-align:right">노출 일수</th>
+            <th style="${thStyle};text-align:right">노출 기간</th>
+            <th style="${thStyle};text-align:right">일평균 UV</th>
+            <th style="${thStyle};text-align:right">일평균 PV</th>
+            <th style="${thStyle};text-align:right">일평균 매출</th>
+          </tr>
+        </thead>
+        <tbody>${summaryRows}</tbody>
+      </table>
+    </div>`;
 
   /* 범례 */
   const legendItems = items.map(it =>
@@ -3443,9 +3447,8 @@ function renderCmpResult(page) {
   const cmpTableId = `${page}-cmp-tbl`;
 
   resultEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:${periodCols};gap:10px;margin-bottom:14px">${periodCards}</div>
-    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px">일평균 지표 비교</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">${metricCards}</div>
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px">배너별 지표 비교</div>
+    ${summaryTable}
 
     <!-- 그래프 모드 탭 -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--bd);padding-bottom:10px">
