@@ -61,7 +61,13 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 .mt-row input[type=checkbox]{accent-color:var(--blue);cursor:pointer}
 .mt-arrow{width:12px;font-size:9px;color:var(--t3);flex-shrink:0;transition:transform .15s;text-align:center}
 .mt-arrow.open{transform:rotate(90deg)}
-.mt-lbl{flex:1;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt-lbl{flex:1;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.mt-lbl:hover{color:var(--blue);text-decoration:underline}
+.mt-row.active{background:var(--blue-soft)}
+.mt-row.active .mt-lbl{color:var(--blue);font-weight:700}
+.crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--blue-soft);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:var(--blue);font-weight:600}
+.crumb .cr-reset{font-size:11.5px;font-weight:600;color:var(--t2);background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;cursor:pointer;margin-left:auto}
+.crumb .cr-reset:hover{background:var(--sf2)}
 .mt-cnt{font-size:10.5px;color:var(--t3)}
 .mt-lv1{font-weight:600}
 .mt-lv2{padding-left:16px;font-size:12px}
@@ -220,6 +226,7 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
       <div class="es-s">우측 상단 <strong>⬆ 엑셀 업로드</strong> 버튼으로 편성 실적 엑셀 파일을 올려주세요.<br>매주 신규분만 올려도 자동으로 누적됩니다.</div>
     </div>
     <div id="dashBody" style="display:none">
+      <div id="drillCrumb" style="display:none"></div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div>
           <div class="sec-ttl" id="rangeTtl">편성 실적 요약</div>
@@ -526,6 +533,19 @@ async function refreshMetaWeeks() {
 let ALL_WEEKS = [];
 let MENU_TREE = null;      // {gnb:{d1:{d2:{d3:count}}}}
 let SELECTED_MENU = new Set(); // gnb keys selected (path strings) — empty set = 전체
+let DRILL_KEY = null; // 현재 드릴다운 중인 단일 메뉴 경로 (없으면 전체)
+
+/* 실제 서비스 GNB 노출 순서 — 목록에 없는 GNB는 뒤에 가나다순으로 붙음 */
+const GNB_ORDER = ['홈','B tv+','영화/시리즈','TV 방송','애니메이션','다큐/라이프','키즈','해피시니어','무료','게임&앱','콘텐츠이용권'];
+function sortGnbKeys(keys) {
+  return [...keys].sort((a,b) => {
+    const ia = GNB_ORDER.indexOf(a), ib = GNB_ORDER.indexOf(b);
+    if(ia===-1 && ib===-1) return a.localeCompare(b);
+    if(ia===-1) return 1;
+    if(ib===-1) return -1;
+    return ia-ib;
+  });
+}
 let RANGE = { start:null, end:null };
 let CMP = { on:false, start:null, end:null };
 let METRIC = 'pv'; // 'uv' | 'pv'
@@ -646,37 +666,40 @@ function renderMenuTree() {
   const box = document.getElementById('mtree');
   if(!MENU_TREE || !Object.keys(MENU_TREE).length) { box.innerHTML = '<div style="color:var(--t3);font-size:12px;padding:10px 0">업로드된 데이터가 없습니다</div>'; return; }
   let html = '';
-  const gnbKeys = Object.keys(MENU_TREE).sort();
+  const gnbKeys = sortGnbKeys(Object.keys(MENU_TREE));
   gnbKeys.forEach((g, gi) => {
     const gid = `mt-g${gi}`;
-    html += mtRow(g, 1, gid, true, isChecked(g));
+    html += mtRow(g, 1, gid, true, isChecked(g), [g]);
     html += `<div class="mt-children" id="${gid}-c">`;
     const d1Keys = Object.keys(MENU_TREE[g]).sort();
     d1Keys.forEach((d1, d1i) => {
       const hasD1 = d1 !== '#';
       if(!hasD1) return;
       const id1 = `${gid}-d${d1i}`;
-      html += mtRow(d1, 2, id1, true, isChecked(g,d1), g);
+      html += mtRow(d1, 2, id1, true, isChecked(g,d1), [g,d1]);
       html += `<div class="mt-children" id="${id1}-c">`;
       const d2Keys = Object.keys(MENU_TREE[g][d1]).sort();
       d2Keys.forEach((d2, d2i) => {
         if(d2 === '#') return;
         const id2 = `${id1}-e${d2i}`;
-        html += mtRow(d2, 3, id2, false, isChecked(g,d1,d2), g, d1);
+        html += mtRow(d2, 3, id2, false, isChecked(g,d1,d2), [g,d1,d2]);
       });
       html += `</div>`;
     });
     html += `</div>`;
   });
   box.innerHTML = html;
+  renderDrillCrumb();
 }
-function mtRow(label, lvl, id, expandable, checked, g, d1) {
-  const path = [g,d1,label].filter(Boolean);
+function mtRow(label, lvl, id, expandable, checked, path) {
   const arrow = expandable ? `<span class="mt-arrow" onclick="mtToggle('${id}')">▶</span>` : `<span class="mt-arrow"></span>`;
-  return `<div class="mt-row mt-lv${lvl}">
+  const key = path.join('›');
+  const active = DRILL_KEY === key;
+  const pathJson = JSON.stringify(path).replace(/"/g,'&quot;');
+  return `<div class="mt-row mt-lv${lvl}${active?' active':''}">
     ${arrow}
-    <input type="checkbox" id="${id}-cb" ${checked?'checked':''} onchange="mtCheck('${id}', ${JSON.stringify(path).replace(/"/g,'&quot;')})">
-    <span class="mt-lbl" title="${label}" onclick="document.getElementById('${id}-cb').click()">${label}</span>
+    <input type="checkbox" id="${id}-cb" ${checked?'checked':''} onchange="mtCheck('${id}', ${pathJson})" onclick="event.stopPropagation()">
+    <span class="mt-lbl" title="${label} — 클릭하면 이 메뉴로 이동" onclick="drillInto(${pathJson})">${label}</span>
   </div>`;
 }
 function mtToggle(id) {
@@ -694,9 +717,35 @@ function isChecked(g,d1,d2) {
 function mtCheck(id, path) {
   const key = path.join('›');
   const cb = document.getElementById(id+'-cb');
+  DRILL_KEY = null; // 체크박스로 직접 조정하면 드릴다운 단일선택 해제
   if(cb.checked) SELECTED_MENU.add(key); else SELECTED_MENU.delete(key);
+  renderDrillCrumb();
 }
-function mtSelectAll() { SELECTED_MENU.clear(); renderMenuTree(); }
+function mtSelectAll() { SELECTED_MENU.clear(); DRILL_KEY=null; renderMenuTree(); applyFilters(); }
+
+/* 메뉴명 클릭 → 그 메뉴 단독으로 드릴다운 이동 */
+function drillInto(path) {
+  const key = path.join('›');
+  DRILL_KEY = key;
+  SELECTED_MENU = new Set([key]);
+  renderMenuTree();
+  applyFilters();
+  document.getElementById('contentArea').scrollTo({top:0, behavior:'smooth'});
+}
+function resetDrill() {
+  DRILL_KEY = null;
+  SELECTED_MENU.clear();
+  renderMenuTree();
+  applyFilters();
+}
+function renderDrillCrumb() {
+  const box = document.getElementById('drillCrumb');
+  if(!box) return;
+  if(!DRILL_KEY) { box.style.display='none'; return; }
+  const parts = DRILL_KEY.split('›');
+  box.style.display = '';
+  box.innerHTML = `<div class="crumb">📍 전체 › ${parts.map(escHtml).join(' › ')}<button class="cr-reset" onclick="resetDrill()">✕ 전체보기로</button></div>`;
+}
 
 /* ═══════════════════════════════════════
    PERIOD PRESETS
@@ -742,7 +791,7 @@ async function applyFilters() {
   RANGE.start = document.getElementById('dtStart').value;
   RANGE.end = document.getElementById('dtEnd').value;
   if(!RANGE.start || !RANGE.end) return;
-  document.getElementById('rangeTtl').textContent = `편성 실적 요약`;
+  document.getElementById('rangeTtl').textContent = DRILL_KEY ? `${DRILL_KEY.split('›').pop()} 실적` : `편성 실적 요약`;
   document.getElementById('rangeSub').textContent = `${RANGE.start} ~ ${RANGE.end}` + (CMP.on ? ` · 비교: ${document.getElementById('dtStart2').value||'-'} ~ ${document.getElementById('dtEnd2').value||'-'}` : '');
 
   const menuRows = await loadMenuRows(RANGE.start, RANGE.end);
@@ -966,9 +1015,11 @@ function populateBlockGnbSel() {
   const sel = document.getElementById('blockGnbSel');
   if(!sel || !MENU_TREE) return;
   const prev = sel.value;
-  const gnbs = Object.keys(MENU_TREE).sort();
+  const gnbs = sortGnbKeys(Object.keys(MENU_TREE));
   sel.innerHTML = gnbs.map(g=>`<option value="${escHtml(g)}">${escHtml(g)}</option>`).join('');
-  if(gnbs.includes(prev)) sel.value = prev;
+  const drillGnb = DRILL_KEY ? DRILL_KEY.split('›')[0] : null;
+  if(drillGnb && gnbs.includes(drillGnb)) sel.value = drillGnb;
+  else if(gnbs.includes(prev)) sel.value = prev;
 }
 async function renderBlockTable() {
   const sel = document.getElementById('blockGnbSel');
