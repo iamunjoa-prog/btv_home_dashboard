@@ -65,6 +65,8 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 .mt-lbl:hover{color:var(--blue);text-decoration:underline}
 .mt-row.active{background:var(--blue-soft)}
 .mt-row.active .mt-lbl{color:var(--blue);font-weight:700}
+.main-row{border-radius:8px;font-weight:700}
+.main-row .mt-lbl{cursor:pointer}
 .crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--blue-soft);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:var(--blue);font-weight:600}
 .crumb .cr-reset{font-size:11.5px;font-weight:600;color:var(--t2);background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;cursor:pointer;margin-left:auto}
 .crumb .cr-reset:hover{background:var(--sf2)}
@@ -222,8 +224,15 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
       <button class="btn" style="width:100%;justify-content:center;margin-top:10px" onclick="applyFilters()">조회</button>
     </div>
 
+    <div class="sb-block" style="padding:6px">
+      <div class="mt-row main-row" id="mainNavRow" onclick="resetDrill()">
+        <span class="mt-arrow"></span>
+        <span class="mt-lbl">🏠 메인</span>
+      </div>
+    </div>
+
     <div class="sb-block">
-      <div class="sb-h">메뉴 선택 <span class="lnk" onclick="mtSelectAll()">전체선택</span></div>
+      <div class="sb-h">메뉴 선택</div>
       <div class="mtree" id="mtree"><div style="color:var(--t3);font-size:12px;padding:10px 0">업로드된 데이터가 없습니다</div></div>
     </div>
 
@@ -684,20 +693,20 @@ function renderMenuTree() {
   const gnbKeys = sortGnbKeys(Object.keys(MENU_TREE));
   gnbKeys.forEach((g, gi) => {
     const gid = `mt-g${gi}`;
-    html += mtRow(g, 1, gid, true, isChecked(g), [g]);
+    html += mtRow(g, 1, gid, true, [g]);
     html += `<div class="mt-children" id="${gid}-c">`;
     const d1Keys = Object.keys(MENU_TREE[g]).sort();
     d1Keys.forEach((d1, d1i) => {
       const hasD1 = d1 !== '#';
       if(!hasD1) return;
       const id1 = `${gid}-d${d1i}`;
-      html += mtRow(d1, 2, id1, true, isChecked(g,d1), [g,d1]);
+      html += mtRow(d1, 2, id1, true, [g,d1]);
       html += `<div class="mt-children" id="${id1}-c">`;
       const d2Keys = Object.keys(MENU_TREE[g][d1]).sort();
       d2Keys.forEach((d2, d2i) => {
         if(d2 === '#') return;
         const id2 = `${id1}-e${d2i}`;
-        html += mtRow(d2, 3, id2, false, isChecked(g,d1,d2), [g,d1,d2]);
+        html += mtRow(d2, 3, id2, false, [g,d1,d2]);
       });
       html += `</div>`;
     });
@@ -706,15 +715,14 @@ function renderMenuTree() {
   box.innerHTML = html;
   renderDrillCrumb();
 }
-function mtRow(label, lvl, id, expandable, checked, path) {
+function mtRow(label, lvl, id, expandable, path) {
   const arrow = expandable ? `<span class="mt-arrow" onclick="mtToggle('${id}')">▶</span>` : `<span class="mt-arrow"></span>`;
   const key = path.join('›');
   const active = DRILL_KEY === key;
   const pathJson = JSON.stringify(path).replace(/"/g,'&quot;');
   return `<div class="mt-row mt-lv${lvl}${active?' active':''}">
     ${arrow}
-    <input type="checkbox" id="${id}-cb" ${checked?'checked':''} onchange="mtCheck('${id}', ${pathJson})" onclick="event.stopPropagation()">
-    <span class="mt-lbl" title="${label} — 클릭하면 이 메뉴로 이동" onclick="drillInto(${pathJson})">${label}</span>
+    <span class="mt-lbl" title="${label}" onclick="drillInto(${pathJson})">${label}</span>
   </div>`;
 }
 function mtToggle(id) {
@@ -724,19 +732,7 @@ function mtToggle(id) {
   c.classList.toggle('open');
   arrow.classList.toggle('open');
 }
-function isChecked(g,d1,d2) {
-  if(!SELECTED_MENU.size) return true; // 전체 선택 상태
-  const key = [g,d1,d2].filter(Boolean).join('›');
-  return [...SELECTED_MENU].some(sel => key.startsWith(sel) || sel.startsWith(key));
-}
-function mtCheck(id, path) {
-  const key = path.join('›');
-  const cb = document.getElementById(id+'-cb');
-  DRILL_KEY = null; // 체크박스로 직접 조정하면 드릴다운 단일선택 해제
-  if(cb.checked) SELECTED_MENU.add(key); else SELECTED_MENU.delete(key);
-  renderDrillCrumb();
-}
-function mtSelectAll() { SELECTED_MENU.clear(); DRILL_KEY=null; renderMenuTree(); applyFilters(); }
+function mtSelectAll() { resetDrill(); }
 
 /* 메뉴명 클릭 → 그 메뉴 단독으로 드릴다운 이동 */
 function drillInto(path) {
@@ -754,6 +750,7 @@ function resetDrill() {
   applyFilters();
 }
 function renderDrillCrumb() {
+  document.getElementById('mainNavRow')?.classList.toggle('active', !DRILL_KEY);
   const box = document.getElementById('drillCrumb');
   if(!box) return;
   if(!DRILL_KEY) { box.style.display='none'; return; }
