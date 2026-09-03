@@ -129,6 +129,8 @@ tbody tr:hover{background:var(--sf2)}
 tbody td{padding:8px 10px;text-align:right}
 tbody td:first-child{text-align:left;font-weight:500}
 .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;font-size:10.5px;font-weight:700;background:var(--sf2);color:var(--t2);margin-right:6px}
+.cell-delta{display:block;font-size:10.5px;font-weight:600;margin-top:1px}
+.cell-delta.up{color:var(--green)}.cell-delta.dn{color:var(--red)}.cell-delta.fl{color:var(--t3)}
 .rank-badge.top{background:var(--blue);color:#fff}
 .search-inp{font-size:12.5px;padding:7px 12px;border:1px solid var(--bd);border-radius:9px;font-family:inherit;background:var(--sf2);outline:none;min-width:220px}
 .search-inp:focus{border-color:var(--blue);background:var(--sf)}
@@ -279,6 +281,13 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
       </div>
 
       <div id="mainOnlySection">
+        <div class="card">
+          <div class="card-hdr">
+            <div><div class="card-ttl">GNB별 실적</div><div class="card-sub" id="gnbPerfSub">선택 기간 합계 · 전기간 대비(WoW)</div></div>
+          </div>
+          <div class="tw"><table id="gnbPerfTable"></table></div>
+        </div>
+
         <div class="card">
           <div class="card-hdr">
             <div><div class="card-ttl">GNB별 비교</div><div class="card-sub">선택 기간 합계</div></div>
@@ -894,6 +903,7 @@ async function applyFilters() {
   buildTrendTabs();
   renderTrend();
   if(!DRILL_KEY) {
+    renderGnbPerfTable(filtered, cmpFiltered, cmpLabel);
     buildGnbTrendTabs();
     renderGnbTrend();
     renderGnbChart(filtered);
@@ -1145,6 +1155,37 @@ function renderBlockTable(scopedRows) {
 /* ═══════════════════════════════════════
    GNB COMPARISON CHART
 ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   GNB별 실적 표 — 메뉴진입/클릭/시놉진입/재생/구매 + WoW
+═══════════════════════════════════════ */
+function renderGnbPerfTable(rows, cmpRows, cmpLabel) {
+  document.getElementById('gnbPerfSub').textContent = `선택 기간 합계 · ${cmpLabel||'전기간'} (WoW)`;
+  const sumBy = (src, gnb, code) => src.filter(r=>r.gnb===gnb && r.logcode===code).reduce((a,r)=>a+(r[METRIC]||0),0);
+  const gnbs = sortGnbKeys([...new Set(rows.map(r=>r.gnb))]);
+
+  let html = `<thead><tr><th>GNB</th>${FUNNEL_STEPS.map(s=>`<th>${s.label}</th>`).join('')}</tr></thead><tbody>`;
+  gnbs.forEach(g => {
+    html += `<tr><td>${escHtml(g)}</td>`;
+    FUNNEL_STEPS.forEach(s => {
+      const v = sumBy(rows, g, s.code);
+      const cv = cmpRows ? sumBy(cmpRows, g, s.code) : null;
+      let deltaHtml = '';
+      if(cv !== null) {
+        const diff = cv ? ((v-cv)/cv*100) : null;
+        if(diff !== null) {
+          const cls = diff>0?'up':diff<0?'dn':'fl';
+          const arrow = diff>0?'▲':diff<0?'▼':'-';
+          deltaHtml = `<span class="cell-delta ${cls}">${arrow} ${Math.abs(diff).toFixed(1)}%</span>`;
+        }
+      }
+      html += `<td>${v.toLocaleString()}${deltaHtml}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('gnbPerfTable').innerHTML = html;
+}
+
 let gnbChartInst = null;
 function renderGnbChart(rows) {
   const clicks = rows.filter(r=>r.logcode==='CTSEL');
