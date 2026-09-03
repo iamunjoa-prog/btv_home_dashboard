@@ -255,29 +255,30 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
         <div class="chart-wrap"><canvas id="cTrend" height="90"></canvas></div>
       </div>
 
-      <div class="card">
-        <div class="card-hdr">
-          <div><div class="card-ttl">GNB별 비교</div><div class="card-sub">선택 기간 합계</div></div>
-        </div>
-        <div class="chart-wrap"><canvas id="cGnb" height="90"></canvas></div>
-      </div>
-
-      <div class="card">
-        <div class="card-hdr">
-          <div><div class="card-ttl">전체 GNB별 흐름</div><div class="card-sub" id="gnbTrendSub">GNB별 추이 비교 (상위 GNB)</div></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <div class="tbar" id="gnbTrendMetricTb"></div>
-            <div class="tbar" id="gnbTrendUnitTb"></div>
+      <div id="mainOnlySection">
+        <div class="card">
+          <div class="card-hdr">
+            <div><div class="card-ttl">GNB별 비교</div><div class="card-sub">선택 기간 합계</div></div>
           </div>
+          <div class="chart-wrap"><canvas id="cGnb" height="90"></canvas></div>
         </div>
-        <div class="chart-wrap"><canvas id="cGnbTrend" height="90"></canvas></div>
-        <div class="mini-legend" id="gnbTrendLegend"></div>
+
+        <div class="card">
+          <div class="card-hdr">
+            <div><div class="card-ttl">전체 GNB별 흐름</div><div class="card-sub" id="gnbTrendSub">GNB별 추이 비교 (상위 GNB)</div></div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div class="tbar" id="gnbTrendMetricTb"></div>
+              <div class="tbar" id="gnbTrendUnitTb"></div>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="cGnbTrend" height="90"></canvas></div>
+          <div class="mini-legend" id="gnbTrendLegend"></div>
+        </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="blockSection" style="display:none">
         <div class="card-hdr">
-          <div><div class="card-ttl">GNB 내 편성 블록 실적</div><div class="card-sub">특정 GNB를 선택하면 그 안의 메뉴(편성 블록)별 실적을 볼 수 있어요</div></div>
-          <select class="search-inp" id="blockGnbSel" onchange="renderBlockTable()" style="min-width:160px"></select>
+          <div><div class="card-ttl" id="blockSectionTtl">편성 블록 상세</div><div class="card-sub">선택한 메뉴 안의 하위 메뉴(편성 블록)별 실적</div></div>
         </div>
         <div class="tw"><table id="blockTable"></table></div>
       </div>
@@ -806,15 +807,17 @@ async function applyFilters() {
     }
   }
 
+  document.getElementById('mainOnlySection').style.display = DRILL_KEY ? 'none' : '';
   renderKPI(filtered, cmpFiltered);
   renderFunnel(filtered);
   buildTrendTabs();
   renderTrend();
-  buildGnbTrendTabs();
-  renderGnbTrend();
-  renderGnbChart(filtered);
-  populateBlockGnbSel();
-  renderBlockTable();
+  if(!DRILL_KEY) {
+    buildGnbTrendTabs();
+    renderGnbTrend();
+    renderGnbChart(filtered);
+  }
+  renderBlockTable(filtered);
   await renderRankSection();
   await loadTitleCompareData();
   renderTitlePickChips();
@@ -1009,33 +1012,29 @@ async function renderGnbTrend() {
 }
 
 /* ═══════════════════════════════════════
-   GNB 내 편성 블록 실적
+   편성 블록 상세 — 드릴다운한 메뉴 안의 하위 블록 breakdown
+   (메인 화면에선 숨기고, 메뉴 클릭 시에만 노출)
 ═══════════════════════════════════════ */
-function populateBlockGnbSel() {
-  const sel = document.getElementById('blockGnbSel');
-  if(!sel || !MENU_TREE) return;
-  const prev = sel.value;
-  const gnbs = sortGnbKeys(Object.keys(MENU_TREE));
-  sel.innerHTML = gnbs.map(g=>`<option value="${escHtml(g)}">${escHtml(g)}</option>`).join('');
-  const drillGnb = DRILL_KEY ? DRILL_KEY.split('›')[0] : null;
-  if(drillGnb && gnbs.includes(drillGnb)) sel.value = drillGnb;
-  else if(gnbs.includes(prev)) sel.value = prev;
-}
-async function renderBlockTable() {
-  const sel = document.getElementById('blockGnbSel');
-  const gnb = sel?.value;
+function renderBlockTable(scopedRows) {
+  const section = document.getElementById('blockSection');
   const box = document.getElementById('blockTable');
-  if(!gnb) { box.innerHTML = ''; return; }
-  const rows = (await loadMenuRows(RANGE.start, RANGE.end)).filter(r=>r.gnb===gnb);
+  if(!DRILL_KEY) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  document.getElementById('blockSectionTtl').textContent = `${DRILL_KEY.split('›').pop()} — 편성 블록 상세`;
+
+  const depth = DRILL_KEY.split('›').length;
   const byBlock = new Map();
-  for(const r of rows) {
-    const key = [r.d1,r.d2,r.d3].filter(v=>v && v!=='#').join(' › ') || '(전체)';
+  for(const r of scopedRows) {
+    const full = [r.gnb, r.d1!=='#'?r.d1:null, r.d2!=='#'?r.d2:null, r.d3&&r.d3!=='#'?r.d3:null].filter(Boolean);
+    const remaining = full.slice(depth);
+    const key = remaining.length ? remaining.join(' › ') : '(해당 메뉴 직접)';
     let e = byBlock.get(key);
     if(!e) { e = {block:key, CTSEL:0, SNSSIN:0, CTPL:0, BUY:0, rev:0}; byBlock.set(key,e); }
     if(r.logcode in e) e[r.logcode] += (r[METRIC]||0);
     if(r.logcode==='BUY') e.rev += r.rev;
   }
   const rowsArr = [...byBlock.values()].sort((a,b)=>b.CTSEL-a.CTSEL).slice(0,100);
+  if(!rowsArr.length) { box.innerHTML = '<tbody><tr><td style="padding:16px;color:var(--t3)">데이터가 없습니다.</td></tr></tbody>'; return; }
   let html = `<thead><tr><th>편성 블록</th><th>클릭</th><th>시놉진입율</th><th>재생전환율</th><th>구매전환율</th><th>매출</th></tr></thead><tbody>`;
   rowsArr.forEach((r,i) => {
     const snRate = r.CTSEL? (r.SNSSIN/r.CTSEL*100).toFixed(1)+'%' : '-';
