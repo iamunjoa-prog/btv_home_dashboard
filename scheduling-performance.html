@@ -188,14 +188,28 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
   <aside class="sidebar">
     <div class="sb-block">
       <div class="sb-h">기간 선택</div>
-      <div class="preset-row" id="presetRow"></div>
-      <div class="date-row">
-        <input type="date" id="dtStart">
-        <span class="date-tilde">~</span>
-        <input type="date" id="dtEnd">
+      <div class="tbar" id="periodModeTb" style="width:100%;margin-bottom:10px"></div>
+
+      <div id="periodModeDay" style="display:none">
+        <input type="date" id="dtDay" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;font-family:inherit;background:var(--sf2);margin-bottom:6px" onchange="onDayPick()">
       </div>
+      <div id="periodModeWeek" style="display:none">
+        <select id="weekSel" class="search-inp" style="width:100%;margin-bottom:6px" onchange="onWeekPick()"></select>
+      </div>
+      <div id="periodModeMonth" style="display:none">
+        <input type="month" id="dtMonth" style="width:100%;padding:7px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;font-family:inherit;background:var(--sf2);margin-bottom:6px" onchange="onMonthPick()">
+      </div>
+      <div id="periodModeCustom" style="display:none">
+        <div class="preset-row" id="presetRow"></div>
+        <div class="date-row">
+          <input type="date" id="dtStart" onchange="applyFilters()">
+          <span class="date-tilde">~</span>
+          <input type="date" id="dtEnd" onchange="applyFilters()">
+        </div>
+      </div>
+
       <div class="cmp-toggle">
-        <span class="cmp-lbl">기간 비교</span>
+        <span class="cmp-lbl">별도 기간 비교</span>
         <div class="sw" id="cmpSwitch" onclick="toggleCompare()"></div>
       </div>
       <div id="cmpDateWrap" style="display:none;margin-top:8px">
@@ -276,12 +290,7 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
         </div>
       </div>
 
-      <div class="card" id="blockSection" style="display:none">
-        <div class="card-hdr">
-          <div><div class="card-ttl" id="blockSectionTtl">편성 블록 상세</div><div class="card-sub">선택한 메뉴 안의 하위 메뉴(편성 블록)별 실적</div></div>
-        </div>
-        <div class="tw"><table id="blockTable"></table></div>
-      </div>
+      <div id="blockSection" style="display:none"></div>
 
       <div class="card">
         <div class="card-hdr">
@@ -549,6 +558,7 @@ function sortGnbKeys(keys) {
 }
 let RANGE = { start:null, end:null };
 let CMP = { on:false, start:null, end:null };
+let PERIOD_MODE = 'custom'; // 'day' | 'week' | 'month' | 'custom'
 let METRIC = 'pv'; // 'uv' | 'pv'
 let TREND_METRIC = 'CTSEL';
 let TREND_UNIT = 'day';
@@ -572,10 +582,13 @@ function monthKey(dateStr) { return dateStr.slice(0,7); }
 window.addEventListener('DOMContentLoaded', async () => {
   buildPresets();
   buildMetricTb();
+  buildPeriodModeTabs();
+  setPeriodMode('custom');
   loadSettingsFromStorage();
   ALL_WEEKS = (await idbGet('meta','weeks'))?.weeks || [];
   if(ALL_WEEKS.length) {
     await buildMenuTree();
+    populatePeriodPickers();
     setPreset('recent12w');
     document.getElementById('emptyState').style.display='none';
     document.getElementById('dashBody').style.display='';
@@ -631,6 +644,7 @@ async function refreshAfterUpload() {
   ALL_WEEKS = (await idbGet('meta','weeks'))?.weeks || [];
   if(!ALL_WEEKS.length) return;
   await buildMenuTree();
+  populatePeriodPickers();
   document.getElementById('emptyState').style.display='none';
   document.getElementById('dashBody').style.display='';
   setSS('ok', `누적 ${ALL_WEEKS.length}주차 보유`);
@@ -783,6 +797,69 @@ function toggleCompare() {
   CMP.on = !CMP.on;
   document.getElementById('cmpSwitch').classList.toggle('on', CMP.on);
   document.getElementById('cmpDateWrap').style.display = CMP.on ? '' : 'none';
+  applyFilters();
+}
+
+/* ═══════════════════════════════════════
+   기간 단위 선택 — 일간 / 주간 / 월간 / 기간지정
+═══════════════════════════════════════ */
+const PERIOD_MODES = [['day','일간'],['week','주간'],['month','월간'],['custom','기간지정']];
+function buildPeriodModeTabs() {
+  const box = document.getElementById('periodModeTb');
+  box.innerHTML = PERIOD_MODES.map(([k,l])=>`<button class="tb ${PERIOD_MODE===k?'on':''}" style="flex:1" onclick="setPeriodMode('${k}')">${l}</button>`).join('');
+}
+function setPeriodMode(mode) {
+  PERIOD_MODE = mode;
+  buildPeriodModeTabs();
+  const ids = {day:'periodModeDay', week:'periodModeWeek', month:'periodModeMonth', custom:'periodModeCustom'};
+  Object.entries(ids).forEach(([k,id]) => { const el=document.getElementById(id); if(el) el.style.display = k===mode?'':'none'; });
+}
+function populatePeriodPickers() {
+  const sel = document.getElementById('weekSel');
+  if(!sel) return;
+  const prev = sel.value;
+  const weeksDesc = [...ALL_WEEKS].sort().reverse();
+  sel.innerHTML = weeksDesc.map(w=>`<option value="${w}">${w}</option>`).join('');
+  if(weeksDesc.includes(prev)) sel.value = prev;
+}
+async function onDayPick() {
+  const v = document.getElementById('dtDay').value;
+  if(!v) return;
+  document.getElementById('dtStart').value = v;
+  document.getElementById('dtEnd').value = v;
+  applyFilters();
+}
+async function onWeekPick() {
+  const wl = document.getElementById('weekSel').value;
+  if(!wl) return;
+  const rec = await idbGet('weeksMenu', wl);
+  if(!rec || !rec.rows.length) return;
+  const dates = rec.rows.map(r=>r.date).sort();
+  document.getElementById('dtStart').value = dates[0];
+  document.getElementById('dtEnd').value = dates[dates.length-1];
+  applyFilters();
+}
+function onMonthPick() {
+  const v = document.getElementById('dtMonth').value; // YYYY-MM
+  if(!v) return;
+  const [y,m] = v.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  document.getElementById('dtStart').value = `${v}-01`;
+  document.getElementById('dtEnd').value = `${v}-${String(lastDay).padStart(2,'0')}`;
+  applyFilters();
+}
+function autoCompareLabel() {
+  if(PERIOD_MODE==='day') return '전일 대비';
+  if(PERIOD_MODE==='week') return '전주 대비';
+  if(PERIOD_MODE==='month') return '전월 대비';
+  return '직전 동일기간 대비';
+}
+function computeAutoPrevRange() {
+  const s = new Date(RANGE.start), e = new Date(RANGE.end);
+  const lengthDays = Math.round((e-s)/864e5) + 1;
+  const prevEnd = addDays(s, -1);
+  const prevStart = addDays(prevEnd, -(lengthDays-1));
+  return { start: fmtISO(prevStart), end: fmtISO(prevEnd) };
 }
 
 /* ═══════════════════════════════════════
@@ -793,22 +870,29 @@ async function applyFilters() {
   RANGE.end = document.getElementById('dtEnd').value;
   if(!RANGE.start || !RANGE.end) return;
   document.getElementById('rangeTtl').textContent = DRILL_KEY ? `${DRILL_KEY.split('›').pop()} 실적` : `편성 실적 요약`;
-  document.getElementById('rangeSub').textContent = `${RANGE.start} ~ ${RANGE.end}` + (CMP.on ? ` · 비교: ${document.getElementById('dtStart2').value||'-'} ~ ${document.getElementById('dtEnd2').value||'-'}` : '');
+  const autoPrev = computeAutoPrevRange();
+  document.getElementById('rangeSub').textContent = `${RANGE.start} ~ ${RANGE.end}` + (CMP.on ? ` · 비교: ${document.getElementById('dtStart2').value||'-'} ~ ${document.getElementById('dtEnd2').value||'-'}` : ` · ${autoCompareLabel()} 기준: ${autoPrev.start} ~ ${autoPrev.end}`);
 
   const menuRows = await loadMenuRows(RANGE.start, RANGE.end);
   const filtered = filterByMenu(menuRows);
-  let cmpFiltered = null;
+  let cmpFiltered = null, cmpLabel = '';
   if(CMP.on) {
     CMP.start = document.getElementById('dtStart2').value;
     CMP.end = document.getElementById('dtEnd2').value;
     if(CMP.start && CMP.end) {
       const cmpRows = await loadMenuRows(CMP.start, CMP.end);
       cmpFiltered = filterByMenu(cmpRows);
+      cmpLabel = '비교기간 대비';
     }
+  } else {
+    const auto = computeAutoPrevRange();
+    const autoRows = await loadMenuRows(auto.start, auto.end);
+    cmpFiltered = filterByMenu(autoRows);
+    cmpLabel = autoCompareLabel();
   }
 
   document.getElementById('mainOnlySection').style.display = DRILL_KEY ? 'none' : '';
-  renderKPI(filtered, cmpFiltered);
+  renderKPI(filtered, cmpFiltered, cmpLabel);
   renderFunnel(filtered);
   buildTrendTabs();
   renderTrend();
@@ -879,7 +963,7 @@ function sumByCode(rows, code, field) {
   const target = code ? rows.filter(r=>r.logcode===code) : rows;
   return target.reduce((a,r)=>a+(r[field]||0),0);
 }
-function renderKPI(rows, cmpRows) {
+function renderKPI(rows, cmpRows, cmpLabel) {
   const box = document.getElementById('kpiRow');
   box.innerHTML = KPI_DEFS.map(k => {
     const v = sumByCode(rows, k.code);
@@ -890,7 +974,7 @@ function renderKPI(rows, cmpRows) {
       if(diff !== null) {
         const cls = diff>0?'up':diff<0?'dn':'fl';
         const arrow = diff>0?'▲':diff<0?'▼':'-';
-        wowHtml = `<div class="kw ${cls}">${arrow} ${Math.abs(diff).toFixed(1)}% <span style="color:var(--t3);font-weight:400">vs 비교기간</span></div>`;
+        wowHtml = `<div class="kw ${cls}">${arrow} ${Math.abs(diff).toFixed(1)}% <span style="color:var(--t3);font-weight:400">${cmpLabel||''}</span></div>`;
       }
     }
     return `<div class="kc">
@@ -1012,38 +1096,53 @@ async function renderGnbTrend() {
 }
 
 /* ═══════════════════════════════════════
-   편성 블록 상세 — 드릴다운한 메뉴 안의 하위 블록 breakdown
+   경로레벨별 실적 표 — 드릴다운한 메뉴 아래 남은 경로레벨마다 표 하나씩
    (메인 화면에선 숨기고, 메뉴 클릭 시에만 노출)
+   depth=1 (GNB만 선택): "GNB>경로레벨1" 표 + "GNB>경로레벨1>경로레벨2" 표
+   depth=2 (GNB>경로레벨1 선택): "…>경로레벨2" 표 1개
+   depth=3 (경로레벨2까지 선택, 리프): 표 없음
 ═══════════════════════════════════════ */
+const LEVEL_LABELS = ['GNB','경로레벨1','경로레벨2'];
 function renderBlockTable(scopedRows) {
   const section = document.getElementById('blockSection');
-  const box = document.getElementById('blockTable');
-  if(!DRILL_KEY) { section.style.display = 'none'; return; }
+  const depth = DRILL_KEY ? DRILL_KEY.split('›').length : 0;
+  if(!DRILL_KEY || depth >= 3) { section.style.display = 'none'; section.innerHTML=''; return; }
   section.style.display = '';
-  document.getElementById('blockSectionTtl').textContent = `${DRILL_KEY.split('›').pop()} — 편성 블록 상세`;
 
-  const depth = DRILL_KEY.split('›').length;
-  const byBlock = new Map();
-  for(const r of scopedRows) {
-    const full = [r.gnb, r.d1!=='#'?r.d1:null, r.d2!=='#'?r.d2:null, r.d3&&r.d3!=='#'?r.d3:null].filter(Boolean);
-    const remaining = full.slice(depth);
-    const key = remaining.length ? remaining.join(' › ') : '(해당 메뉴 직접)';
-    let e = byBlock.get(key);
-    if(!e) { e = {block:key, CTSEL:0, SNSSIN:0, CTPL:0, BUY:0, rev:0}; byBlock.set(key,e); }
-    if(r.logcode in e) e[r.logcode] += (r[METRIC]||0);
-    if(r.logcode==='BUY') e.rev += r.rev;
+  const fields = r => [r.gnb, (r.d1 && r.d1!=='#')?r.d1:null, (r.d2 && r.d2!=='#')?r.d2:null];
+  let html = '';
+  for(let L = depth+1; L <= 3; L++) {
+    const titleParts = LEVEL_LABELS.slice(0, L);
+    const title = titleParts.join(' > ') + ' 실적';
+
+    const byBlock = new Map();
+    for(const r of scopedRows) {
+      const f = fields(r).slice(0, L);
+      if(f.some(v => v===null)) continue; // 이 레벨까지 경로가 없는 행은 제외
+      const key = f.slice(depth).join(' › ');
+      let e = byBlock.get(key);
+      if(!e) { e = {block:key, CTSEL:0, SNSSIN:0, CTPL:0, BUY:0, rev:0}; byBlock.set(key,e); }
+      if(r.logcode in e) e[r.logcode] += (r[METRIC]||0);
+      if(r.logcode==='BUY') e.rev += r.rev;
+    }
+    const rowsArr = [...byBlock.values()].sort((a,b)=>b.CTSEL-a.CTSEL).slice(0,100);
+
+    html += `<div class="card"><div class="card-hdr"><div><div class="card-ttl">${title}</div></div></div><div class="tw"><table>`;
+    if(!rowsArr.length) {
+      html += `<tbody><tr><td style="padding:16px;color:var(--t3)">데이터가 없습니다.</td></tr></tbody>`;
+    } else {
+      html += `<thead><tr><th>${LEVEL_LABELS[L-1]}</th><th>클릭</th><th>시놉진입율</th><th>재생전환율</th><th>구매전환율</th><th>매출</th></tr></thead><tbody>`;
+      rowsArr.forEach((r,i) => {
+        const snRate = r.CTSEL? (r.SNSSIN/r.CTSEL*100).toFixed(1)+'%' : '-';
+        const plRate = r.SNSSIN? (r.CTPL/r.SNSSIN*100).toFixed(1)+'%' : '-';
+        const buyRate = r.CTPL? (r.BUY/r.CTPL*100).toFixed(1)+'%' : '-';
+        html += `<tr><td><span class="rank-badge ${i<3?'top':''}">${i+1}</span>${escHtml(r.block)}</td><td>${r.CTSEL.toLocaleString()}</td><td>${snRate}</td><td>${plRate}</td><td>${buyRate}</td><td>${r.rev.toLocaleString()}</td></tr>`;
+      });
+      html += '</tbody>';
+    }
+    html += '</table></div></div>';
   }
-  const rowsArr = [...byBlock.values()].sort((a,b)=>b.CTSEL-a.CTSEL).slice(0,100);
-  if(!rowsArr.length) { box.innerHTML = '<tbody><tr><td style="padding:16px;color:var(--t3)">데이터가 없습니다.</td></tr></tbody>'; return; }
-  let html = `<thead><tr><th>편성 블록</th><th>클릭</th><th>시놉진입율</th><th>재생전환율</th><th>구매전환율</th><th>매출</th></tr></thead><tbody>`;
-  rowsArr.forEach((r,i) => {
-    const snRate = r.CTSEL? (r.SNSSIN/r.CTSEL*100).toFixed(1)+'%' : '-';
-    const plRate = r.SNSSIN? (r.CTPL/r.SNSSIN*100).toFixed(1)+'%' : '-';
-    const buyRate = r.CTPL? (r.BUY/r.CTPL*100).toFixed(1)+'%' : '-';
-    html += `<tr><td><span class="rank-badge ${i<3?'top':''}">${i+1}</span>${escHtml(r.block)}</td><td>${r.CTSEL.toLocaleString()}</td><td>${snRate}</td><td>${plRate}</td><td>${buyRate}</td><td>${r.rev.toLocaleString()}</td></tr>`;
-  });
-  html += '</tbody>';
-  box.innerHTML = html;
+  section.innerHTML = html;
 }
 
 /* ═══════════════════════════════════════
