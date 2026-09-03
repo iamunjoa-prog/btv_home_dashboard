@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>편성 실적 대시보드</title>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f6f7f9;--sf:#fff;--sf2:#f6f7f9;--bd:rgba(0,0,0,.08);
+  --t1:#1d1d1f;--t2:#6e6e73;--t3:#8a8a8e;
+  --blue:#0071e3;--blue-soft:#eaf3fe;--green:#1fab5a;--red:#e5484d;--orange:#ff9f0a;
+  --r:14px;--rs:10px;
+  --sh1:0 1px 2px rgba(0,0,0,.04),0 1px 1px rgba(0,0,0,.03);
+  --sh2:0 8px 24px rgba(0,0,0,.08);
+}
+body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased}
+
+.hdr{background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:100;padding:0 24px}
+.hdr-in{max-width:1560px;margin:0 auto;display:flex;align-items:center;height:56px;gap:14px}
+.logo{font-size:15px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.logo .lg-ic{width:26px;height:26px;border-radius:8px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.logo span{color:var(--blue)}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.sync{font-size:12px;color:var(--t3);display:flex;align-items:center;gap:5px;padding:0 6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.dot.warn{background:var(--orange)}.dot.err{background:var(--red)}
+.btn{font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:9px;border:1px solid var(--bd);background:var(--sf);color:var(--t2);cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--sf2);color:var(--t1)}
+.btn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.pri:hover{background:#0064cc}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.app-body{display:flex;max-width:1560px;margin:0 auto}
+.sidebar{width:264px;flex-shrink:0;padding:20px 16px 40px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.content-area{flex:1;min-width:0;padding:20px 24px 64px}
+
+.sb-block{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:var(--sh1)}
+.sb-h{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.sb-h .lnk{font-size:11px;font-weight:600;color:var(--blue);cursor:pointer;text-transform:none;letter-spacing:0}
+
+.preset-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.preset{font-size:11.5px;padding:5px 10px;border-radius:20px;border:1px solid var(--bd);background:var(--sf2);color:var(--t2);cursor:pointer;font-family:inherit;transition:all .15s}
+.preset.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600}
+.date-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.date-row input[type=date]{flex:1;min-width:0;font-size:12px;padding:6px 8px;border:1px solid var(--bd);border-radius:8px;font-family:inherit;color:var(--t1);background:var(--sf2)}
+.date-tilde{font-size:11px;color:var(--t3)}
+.cmp-toggle{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)}
+.cmp-lbl{font-size:12px;font-weight:600;color:var(--t2)}
+.sw{position:relative;width:34px;height:20px;border-radius:20px;background:var(--bd);cursor:pointer;transition:background .15s;flex-shrink:0}
+.sw.on{background:var(--blue)}
+.sw::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sw.on::after{left:16px}
+
+.mtree{max-height:340px;overflow-y:auto;font-size:12.5px}
+.mt-row{display:flex;align-items:center;gap:6px;padding:4px 4px;border-radius:6px;cursor:pointer;user-select:none}
+.mt-row:hover{background:var(--sf2)}
+.mt-row input[type=checkbox]{accent-color:var(--blue);cursor:pointer}
+.mt-arrow{width:12px;font-size:9px;color:var(--t3);flex-shrink:0;transition:transform .15s;text-align:center}
+.mt-arrow.open{transform:rotate(90deg)}
+.mt-lbl{flex:1;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt-cnt{font-size:10.5px;color:var(--t3)}
+.mt-lv1{font-weight:600}
+.mt-lv2{padding-left:16px;font-size:12px}
+.mt-lv3{padding-left:32px;font-size:11.5px;color:var(--t2)}
+.mt-lv4{padding-left:48px;font-size:11.5px;color:var(--t3)}
+.mt-children{display:none}
+.mt-children.open{display:block}
+
+.upload-zone{border:1.5px dashed var(--bd);border-radius:var(--rs);padding:16px 10px;text-align:center;cursor:pointer;transition:all .15s;background:var(--sf2)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:var(--blue-soft)}
+.upload-zone .uz-ic{font-size:20px;margin-bottom:4px}
+.upload-zone .uz-t{font-size:12px;font-weight:600;color:var(--t2)}
+.upload-zone .uz-s{font-size:10.5px;color:var(--t3);margin-top:2px}
+
+.sec-ttl{font-size:18px;font-weight:700;letter-spacing:-.4px;margin:4px 0 3px}
+.sec-sub{font-size:12.5px;color:var(--t3);margin-bottom:16px}
+
+.kg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:1200px){.kg{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.kg{grid-template-columns:repeat(2,1fr)}}
+.kc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh1);transition:box-shadow .2s}
+.kc:hover{box-shadow:var(--sh2)}
+.kc-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.kc-ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.kl{font-size:11.5px;font-weight:600;color:var(--t3)}
+.kv{font-size:22px;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.kw{margin-top:6px;font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:4px}
+.kw.up{color:var(--green)}.kw.dn{color:var(--red)}.kw.fl{color:var(--t3)}
+
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh1);margin-bottom:14px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.card-ttl{font-size:14px;font-weight:700}
+.card-sub{font-size:11.5px;color:var(--t3);margin-top:2px;font-weight:400}
+
+.funnel{display:flex;align-items:stretch;gap:0}
+.fn-step{flex:1;text-align:center;padding:14px 8px;position:relative}
+.fn-step:not(:last-child)::after{content:'→';position:absolute;right:-4px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:15px;z-index:2}
+.fn-box{background:var(--sf2);border-radius:12px;padding:14px 8px;border:1px solid var(--bd)}
+.fn-lbl{font-size:11px;font-weight:600;color:var(--t3);margin-bottom:6px}
+.fn-val{font-size:18px;font-weight:700}
+.fn-rate{font-size:11px;color:var(--blue);font-weight:600;margin-top:4px}
+
+.tbar{display:flex;gap:2px;background:var(--sf2);border-radius:9px;padding:3px;width:fit-content}
+.tb{padding:5px 13px;border-radius:7px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--t2);font-family:inherit;transition:all .15s}
+.tb.on{background:var(--sf);color:var(--t1);box-shadow:var(--sh1);font-weight:600}
+
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+thead th{padding:9px 10px;font-size:11px;font-weight:700;color:var(--t3);text-align:right;border-bottom:1px solid var(--bd);background:var(--sf2);cursor:pointer;user-select:none}
+thead th:first-child{text-align:left}
+thead th.sort::after{content:' ⇅';color:var(--t3);font-size:9px}
+thead th.sort.asc::after{content:' ↑';color:var(--blue)}
+thead th.sort.desc::after{content:' ↓';color:var(--blue)}
+tbody tr{border-bottom:1px solid rgba(0,0,0,.045)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--sf2)}
+tbody td{padding:8px 10px;text-align:right}
+tbody td:first-child{text-align:left;font-weight:500}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;font-size:10.5px;font-weight:700;background:var(--sf2);color:var(--t2);margin-right:6px}
+.rank-badge.top{background:var(--blue);color:#fff}
+.search-inp{font-size:12.5px;padding:7px 12px;border:1px solid var(--bd);border-radius:9px;font-family:inherit;background:var(--sf2);outline:none;min-width:220px}
+.search-inp:focus{border-color:var(--blue);background:var(--sf)}
+
+.empty-state{text-align:center;padding:70px 20px;color:var(--t3)}
+.empty-state .es-ic{font-size:34px;margin-bottom:10px}
+.empty-state .es-t{font-size:14px;font-weight:600;color:var(--t2);margin-bottom:5px}
+.empty-state .es-s{font-size:12.5px;line-height:1.7}
+
+.spinner-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:12px;color:var(--t3);font-size:13px}
+.spinner{width:26px;height:26px;border:3px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--sf);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.25);padding:26px;width:560px;max-width:calc(100vw - 32px);max-height:88vh;overflow-y:auto;transform:translateY(10px);transition:transform .2s}
+.ov.open .modal{transform:translateY(0)}
+.m-ttl{font-size:16px;font-weight:700;margin-bottom:4px}
+.m-dsc{font-size:12.5px;color:var(--t3);margin-bottom:16px;line-height:1.6}
+.m-lbl{display:block;font-size:11.5px;font-weight:600;color:var(--t2);margin-bottom:5px;margin-top:12px}
+.m-lbl:first-child{margin-top:0}
+.m-inp{width:100%;padding:9px 12px;border:1px solid var(--bd);border-radius:9px;font-size:12.5px;font-family:inherit;color:var(--t1);background:var(--sf2);outline:none}
+.m-inp:focus{border-color:var(--blue)}
+.m-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.m-note{background:var(--sf2);border-radius:10px;padding:11px 13px;font-size:11.5px;color:var(--t2);line-height:1.7;margin-top:12px}
+.m-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue-soft);color:var(--blue);letter-spacing:.2px}
+
+.upload-list{margin-top:14px}
+.ul-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:12.5px}
+.ul-row:last-child{border-bottom:none}
+.ul-name{flex:1;color:var(--t2)}
+.ul-status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+.ul-status.ok{background:#e8f8ee;color:var(--green)}
+.ul-status.err{background:#fdeceb;color:var(--red)}
+.ul-status.wait{background:var(--sf2);color:var(--t3)}
+
+.chart-wrap{position:relative}
+.mini-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--t2)}
+.mini-legend .li{display:flex;align-items:center;gap:5px}
+.mini-legend .ld{width:8px;height:8px;border-radius:2px}
+
+footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:1px solid var(--bd);margin-top:20px}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="logo"><div class="lg-ic">B</div>편성 실적 <span>Dashboard</span></div>
+    <div class="hdr-r">
+      <div class="sync"><div class="dot" id="sdot"></div><span id="slbl">데이터 없음</span></div>
+      <button class="btn" onclick="openSettings()">⚙ 저장소 연동</button>
+      <button class="btn pri" onclick="openUpload()">⬆ 엑셀 업로드</button>
+    </div>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="sidebar">
+    <div class="sb-block">
+      <div class="sb-h">기간 선택</div>
+      <div class="preset-row" id="presetRow"></div>
+      <div class="date-row">
+        <input type="date" id="dtStart">
+        <span class="date-tilde">~</span>
+        <input type="date" id="dtEnd">
+      </div>
+      <div class="cmp-toggle">
+        <span class="cmp-lbl">기간 비교</span>
+        <div class="sw" id="cmpSwitch" onclick="toggleCompare()"></div>
+      </div>
+      <div id="cmpDateWrap" style="display:none;margin-top:8px">
+        <div class="date-row">
+          <input type="date" id="dtStart2">
+          <span class="date-tilde">~</span>
+          <input type="date" id="dtEnd2">
+        </div>
+      </div>
+      <button class="btn" style="width:100%;justify-content:center;margin-top:10px" onclick="applyFilters()">조회</button>
+    </div>
+
+    <div class="sb-block">
+      <div class="sb-h">메뉴 선택 <span class="lnk" onclick="mtSelectAll()">전체선택</span></div>
+      <div class="mtree" id="mtree"><div style="color:var(--t3);font-size:12px;padding:10px 0">업로드된 데이터가 없습니다</div></div>
+    </div>
+
+    <div class="sb-block">
+      <div class="sb-h">누적 현황</div>
+      <div id="sbStats" style="font-size:12px;color:var(--t2);line-height:2"></div>
+    </div>
+  </aside>
+
+  <main class="content-area" id="contentArea">
+    <div class="empty-state" id="emptyState">
+      <div class="es-ic">📊</div>
+      <div class="es-t">아직 업로드된 데이터가 없습니다</div>
+      <div class="es-s">우측 상단 <strong>⬆ 엑셀 업로드</strong> 버튼으로 편성 실적 엑셀 파일을 올려주세요.<br>매주 신규분만 올려도 자동으로 누적됩니다.</div>
+    </div>
+    <div id="dashBody" style="display:none">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div class="sec-ttl" id="rangeTtl">편성 실적 요약</div>
+          <div class="sec-sub" id="rangeSub"></div>
+        </div>
+        <div class="tbar" id="metricTb"></div>
+      </div>
+
+      <div class="kg" id="kpiRow"></div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">전환 퍼널</div><div class="card-sub">메뉴진입 → 클릭 → 시놉시스진입 → 재생(VOD시청) → 구매 · 단계별 전환율 (선택 메뉴·기간)</div></div>
+        </div>
+        <div class="funnel" id="funnelBox"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">추이</div><div class="card-sub">선택 기간 내 지표 추이</div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="tbar" id="trendMetricTb"></div>
+            <div class="tbar" id="trendUnitTb"></div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="cTrend" height="90"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">GNB별 비교</div><div class="card-sub">선택 기간 합계</div></div>
+        </div>
+        <div class="chart-wrap"><canvas id="cGnb" height="90"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">전체 GNB별 흐름</div><div class="card-sub" id="gnbTrendSub">GNB별 추이 비교 (상위 GNB)</div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="tbar" id="gnbTrendMetricTb"></div>
+            <div class="tbar" id="gnbTrendUnitTb"></div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="cGnbTrend" height="90"></canvas></div>
+        <div class="mini-legend" id="gnbTrendLegend"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">GNB 내 편성 블록 실적</div><div class="card-sub">특정 GNB를 선택하면 그 안의 메뉴(편성 블록)별 실적을 볼 수 있어요</div></div>
+          <select class="search-inp" id="blockGnbSel" onchange="renderBlockTable()" style="min-width:160px"></select>
+        </div>
+        <div class="tw"><table id="blockTable"></table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">콘텐츠 랭킹</div><div class="card-sub" id="rankSub">선택 기간·메뉴 내 콘텐츠별 실적 (클릭 → 시놉진입율 → 재생전환율 → 구매전환율)</div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="search-inp" id="rankSearch" placeholder="콘텐츠명 검색..." oninput="renderRankTable()">
+            <button class="btn" onclick="downloadRankExcel()">⬇ 엑셀 다운로드</button>
+          </div>
+        </div>
+        <div class="tw"><table id="rankTable"></table></div>
+        <div id="rankMore" style="text-align:center;margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">타이틀별 GNB 매출 비교</div><div class="card-sub">타이틀을 골라서 어느 GNB에서 매출이 더 잘 나왔는지 비교</div></div>
+        </div>
+        <div style="position:relative;margin-bottom:12px">
+          <input class="search-inp" id="titlePickInp" placeholder="타이틀 검색해서 추가..." style="width:100%" oninput="renderTitlePickSuggest()" onfocus="renderTitlePickSuggest()">
+          <div id="titlePickSuggest" style="position:absolute;top:100%;left:0;right:0;background:var(--sf);border:1px solid var(--bd);border-radius:10px;box-shadow:var(--sh2);max-height:220px;overflow-y:auto;z-index:20;display:none"></div>
+        </div>
+        <div id="titlePickChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div class="tw"><table id="titleGnbTable"></table></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer>편성 실적 대시보드 · 로컬 브라우저(IndexedDB)에 누적 저장 · 사내 Git 저장소 연동은 설정에서 구성</footer>
+
+<!-- ════ 업로드 모달 ════ -->
+<div class="ov" id="ovUpload">
+  <div class="modal">
+    <div class="m-ttl">📥 엑셀 업로드</div>
+    <div class="m-dsc">매주 신규 데이터만 뽑아 업로드하면 됩니다. 같은 날짜 데이터가 이미 있으면 새로 올린 값으로 덮어씁니다.</div>
+    <div class="upload-zone" id="uzDrop" onclick="document.getElementById('fileInp').click()">
+      <div class="uz-ic">📄</div>
+      <div class="uz-t">클릭하거나 파일을 끌어다 놓으세요</div>
+      <div class="uz-s">.xlsx / .xls · 3행 헤더 형식</div>
+    </div>
+    <input type="file" id="fileInp" accept=".xlsx,.xls" multiple style="display:none" onchange="handleFileInput(this.files)">
+    <div class="upload-list" id="uploadList"></div>
+    <div class="m-note">📋 <strong>컬럼 형식</strong> (3행 헤더): 기준일자 · GNB · 1depth · 2depth · 3depth · 콘텐츠ID · 콘텐츠명 · 로그구분(코드) · 로그구분명 · UV · PV · 매출</div>
+    <div class="m-btns">
+      <button class="btn" onclick="closeUpload()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 설정 모달 ════ -->
+<div class="ov" id="ovSettings">
+  <div class="modal">
+    <div class="m-ttl">⚙ 사내 Git 저장소 연동 <span class="m-badge">준비중</span></div>
+    <div class="m-dsc">지금은 브라우저(IndexedDB)에만 데이터가 저장됩니다. 사내 Git 서버(GitHub Enterprise 등) 접속 정보를 입력하면 업로드 시 자동으로 커밋되도록 연결할 수 있습니다.</div>
+    <label class="m-lbl">Git 서버 주소 (Host)</label>
+    <input class="m-inp" id="cfgHost" placeholder="예: https://github.mycompany.com">
+    <label class="m-lbl">저장소 (owner/repo)</label>
+    <input class="m-inp" id="cfgRepo" placeholder="예: bq-team/scheduling-data">
+    <label class="m-lbl">브랜치</label>
+    <input class="m-inp" id="cfgBranch" placeholder="main" value="main">
+    <label class="m-lbl">Personal Access Token</label>
+    <input class="m-inp" id="cfgToken" type="password" placeholder="repo 쓰기 권한 토큰">
+    <div class="m-note">🔒 토큰은 이 브라우저에만 저장되며 외부로 전송되지 않습니다. 연동 기능은 접속 정보가 준비되면 활성화됩니다.</div>
+    <div class="m-btns">
+      <button class="btn" onclick="closeSettings()">취소</button>
+      <button class="btn" onclick="exportBackup()">⬇ 전체 백업 다운로드</button>
+      <button class="btn pri" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   IndexedDB — weeksContent / weeksMenu / meta
+═══════════════════════════════════════ */
+const DB_NAME = 'schedPerfDB', DB_VER = 1;
+let dbp = null;
+function openDB() {
+  if(dbp) return dbp;
+  dbp = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains('weeksContent')) db.createObjectStore('weeksContent', {keyPath:'week'});
+      if(!db.objectStoreNames.contains('weeksMenu'))    db.createObjectStore('weeksMenu', {keyPath:'week'});
+      if(!db.objectStoreNames.contains('meta'))          db.createObjectStore('meta', {keyPath:'k'});
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbp;
+}
+async function idbPut(store, val) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(val);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(store, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGetAll(store) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* ═══════════════════════════════════════
+   DATE / WEEK HELPERS
+═══════════════════════════════════════ */
+function normDate(v) {
+  const s = String(v||'').replace(/[^0-9]/g,'');
+  if(s.length !== 8) return null;
+  const y = +s.slice(0,4), m = +s.slice(4,6), d = +s.slice(6,8);
+  const dt = new Date(y, m-1, d);
+  if(isNaN(dt)) return null;
+  return { iso: `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`, ymd: s, date: dt };
+}
+function getWL(d) {
+  const dow=d.getDay(), diff=dow===0?-6:1-dow;
+  const mon=new Date(d); mon.setDate(d.getDate()+diff);
+  const thu=new Date(mon); thu.setDate(mon.getDate()+3);
+  const y=thu.getFullYear(), m=thu.getMonth()+1;
+  const f=new Date(y,m-1,1), fd=f.getDay(), dt=(4-fd+7)%7;
+  const ft=new Date(f); ft.setDate(1+dt);
+  const wn=Math.floor((thu-ft)/(7*864e5))+1;
+  return `${y}-${String(m).padStart(2,'0')}-W${wn}`;
+}
+function fmtISO(d) { return d.toISOString().slice(0,10); }
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+
+/* ═══════════════════════════════════════
+   EVENT CODE MAP
+═══════════════════════════════════════ */
+const LOG_MAP = {
+  MNIN:'메뉴진입', MNSEL:'메뉴선택', CTSEL:'컨텐츠선택(클릭)', CTPL:'VOD시청',
+  SNSSIN:'시놉시스진입', BUY:'구매', BNRSEL:'배너선택', APSEL:'TV앱선택',
+  RN:'실시간채널시청', RNSEL:'실시간채널선택', PAGE:'(단순)화면', BOOT:'부팅'
+};
+const FUNNEL_STEPS = [
+  {code:'MNIN',  label:'메뉴진입', rateLabel:null},
+  {code:'CTSEL', label:'클릭', rateLabel:'클릭율'},
+  {code:'SNSSIN',label:'시놉진입', rateLabel:'시놉진입율'},
+  {code:'CTPL',  label:'재생(VOD시청)', rateLabel:'재생전환율'},
+  {code:'BUY',   label:'구매', rateLabel:'구매전환율'}
+];
+
+/* ═══════════════════════════════════════
+   EXCEL PARSE
+═══════════════════════════════════════ */
+function findHeaderRow(rows) {
+  for(let i=0;i<Math.min(rows.length,10);i++) {
+    const r = rows[i];
+    if(r && String(r[0]||'').includes('기준일자')) return i;
+  }
+  return 2;
+}
+async function parseExcelFile(file) {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+  const hIdx = findHeaderRow(rows);
+  const out = [];
+  for(let i=hIdx+1; i<rows.length; i++) {
+    const r = rows[i];
+    if(!r || !r[0]) continue;
+    const nd = normDate(r[0]);
+    if(!nd) continue;
+    const gnb = String(r[1]||'').trim();
+    if(!gnb) continue;
+    out.push({
+      date: nd.iso, ymd: nd.ymd,
+      gnb, d1: String(r[2]||'').trim(), d2: String(r[3]||'').trim(), d3: String(r[4]||'').trim(),
+      cid: String(r[5]||'').trim(), cname: String(r[6]||'').trim(),
+      logcode: String(r[7]||'').trim(),
+      uv: +r[9]||0, pv: +r[10]||0, rev: +r[11]||0
+    });
+  }
+  return out;
+}
+
+/* ═══════════════════════════════════════
+   AGGREGATE → per-week content / menu rollups
+═══════════════════════════════════════ */
+function aggregateByWeek(rows) {
+  const weeks = {}; // week -> {content:Map, menu:Map}
+  for(const r of rows) {
+    const wl = getWL(new Date(r.date));
+    if(!weeks[wl]) weeks[wl] = {content:new Map(), menu:new Map()};
+    const w = weeks[wl];
+
+    const ck = [r.date,r.gnb,r.d1,r.d2,r.d3,r.cid,r.logcode].join('');
+    let ce = w.content.get(ck);
+    if(!ce) { ce = {date:r.date,gnb:r.gnb,d1:r.d1,d2:r.d2,d3:r.d3,cid:r.cid,cname:r.cname,logcode:r.logcode,uv:0,pv:0,rev:0}; w.content.set(ck,ce); }
+    ce.uv += r.uv; ce.pv += r.pv; ce.rev += r.rev;
+
+    const mk = [r.date,r.gnb,r.d1,r.d2,r.d3,r.logcode].join('');
+    let me = w.menu.get(mk);
+    if(!me) { me = {date:r.date,gnb:r.gnb,d1:r.d1,d2:r.d2,d3:r.d3,logcode:r.logcode,uv:0,pv:0,rev:0}; w.menu.set(mk,me); }
+    me.uv += r.uv; me.pv += r.pv; me.rev += r.rev;
+  }
+  const result = {};
+  for(const wl in weeks) result[wl] = { content: [...weeks[wl].content.values()], menu: [...weeks[wl].menu.values()] };
+  return result;
+}
+
+async function upsertWeeks(weekData) {
+  const weekLabels = Object.keys(weekData);
+  for(const wl of weekLabels) {
+    const existingC = await idbGet('weeksContent', wl);
+    const existingM = await idbGet('weeksMenu', wl);
+    const newC = mergeRows(existingC ? existingC.rows : [], weekData[wl].content, ['date','gnb','d1','d2','d3','cid','logcode']);
+    const newM = mergeRows(existingM ? existingM.rows : [], weekData[wl].menu, ['date','gnb','d1','d2','d3','logcode']);
+    await idbPut('weeksContent', {week:wl, rows:newC, updatedAt: Date.now()});
+    await idbPut('weeksMenu', {week:wl, rows:newM, updatedAt: Date.now()});
+  }
+  await refreshMetaWeeks();
+  return weekLabels;
+}
+function mergeRows(oldRows, newRows, keyFields) {
+  const map = new Map();
+  for(const r of oldRows) map.set(keyFields.map(f=>r[f]).join(''), r);
+  for(const r of newRows) map.set(keyFields.map(f=>r[f]).join(''), r); // 최신 업로드가 덮어씀
+  return [...map.values()];
+}
+async function refreshMetaWeeks() {
+  const all = await idbGetAll('weeksMenu');
+  const weeks = all.map(w=>w.week).sort();
+  await idbPut('meta', {k:'weeks', weeks});
+  return weeks;
+}
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let ALL_WEEKS = [];
+let MENU_TREE = null;      // {gnb:{d1:{d2:{d3:count}}}}
+let SELECTED_MENU = new Set(); // gnb keys selected (path strings) — empty set = 전체
+let RANGE = { start:null, end:null };
+let CMP = { on:false, start:null, end:null };
+let METRIC = 'pv'; // 'uv' | 'pv'
+let TREND_METRIC = 'CTSEL';
+let TREND_UNIT = 'day';
+let GNB_TREND_METRIC = 'CTSEL';
+let GNB_TREND_UNIT = 'week';
+let RANK_LIMIT = 50;
+let TITLE_PICKS = []; // [{cid,cname}]
+let CURRENT_VIEW = null; // {rows, rankRows, funnel, trend}
+
+function buildMetricTb() {
+  const box = document.getElementById('metricTb');
+  if(!box) return;
+  box.innerHTML = ['pv','uv'].map(m=>`<button class="tb ${METRIC===m?'on':''}" onclick="setMetric('${m}')">${m.toUpperCase()}</button>`).join('');
+}
+function setMetric(m) { METRIC = m; buildMetricTb(); applyFilters(); }
+function monthKey(dateStr) { return dateStr.slice(0,7); }
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', async () => {
+  buildPresets();
+  buildMetricTb();
+  loadSettingsFromStorage();
+  ALL_WEEKS = (await idbGet('meta','weeks'))?.weeks || [];
+  if(ALL_WEEKS.length) {
+    await buildMenuTree();
+    setPreset('recent12w');
+    document.getElementById('emptyState').style.display='none';
+    document.getElementById('dashBody').style.display='';
+    setSS('ok', `누적 ${ALL_WEEKS.length}주차 보유`);
+    applyFilters();
+  } else {
+    setSS('warn','데이터 없음');
+  }
+  updateSbStats();
+});
+
+function setSS(state, label) {
+  const d = document.getElementById('sdot');
+  d.className = 'dot' + (state==='warn'?' warn':state==='err'?' err':'');
+  document.getElementById('slbl').textContent = label;
+}
+
+/* ═══════════════════════════════════════
+   UPLOAD MODAL
+═══════════════════════════════════════ */
+function openUpload(){ document.getElementById('ovUpload').classList.add('open'); }
+function closeUpload(){ document.getElementById('ovUpload').classList.remove('open'); refreshAfterUpload(); }
+document.getElementById('uzDrop').addEventListener('dragover', e=>{e.preventDefault(); e.currentTarget.classList.add('drag');});
+document.getElementById('uzDrop').addEventListener('dragleave', e=>{e.currentTarget.classList.remove('drag');});
+document.getElementById('uzDrop').addEventListener('drop', e=>{
+  e.preventDefault(); e.currentTarget.classList.remove('drag');
+  handleFileInput(e.dataTransfer.files);
+});
+
+async function handleFileInput(files) {
+  const list = document.getElementById('uploadList');
+  for(const file of files) {
+    const row = document.createElement('div');
+    row.className = 'ul-row';
+    row.innerHTML = `<span class="ul-name">${file.name}</span><span class="ul-status wait">처리중...</span>`;
+    list.appendChild(row);
+    const statusEl = row.querySelector('.ul-status');
+    try {
+      const rows = await parseExcelFile(file);
+      if(!rows.length) throw new Error('유효한 데이터 행을 찾지 못했습니다');
+      const weekData = aggregateByWeek(rows);
+      const weekLabels = await upsertWeeks(weekData);
+      statusEl.className = 'ul-status ok';
+      statusEl.textContent = `${weekLabels.join(', ')} 반영 완료 (${rows.length.toLocaleString()}행)`;
+    } catch(e) {
+      statusEl.className = 'ul-status err';
+      statusEl.textContent = '실패: ' + e.message;
+      console.error(e);
+    }
+  }
+}
+async function refreshAfterUpload() {
+  ALL_WEEKS = (await idbGet('meta','weeks'))?.weeks || [];
+  if(!ALL_WEEKS.length) return;
+  await buildMenuTree();
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('dashBody').style.display='';
+  setSS('ok', `누적 ${ALL_WEEKS.length}주차 보유`);
+  updateSbStats();
+  if(!document.getElementById('dtStart').value) setPreset('recent12w');
+  applyFilters();
+}
+
+/* ═══════════════════════════════════════
+   MENU TREE — GNB > d1 > d2 > d3 (from all stored weeks' menu rollups)
+═══════════════════════════════════════ */
+let DATA_MIN_DATE = null, DATA_MAX_DATE = null;
+async function buildMenuTree() {
+  const all = await idbGetAll('weeksMenu');
+  const tree = {};
+  let minD = null, maxD = null;
+  for(const w of all) {
+    for(const r of w.rows) {
+      const g = r.gnb||'(미분류)', d1=r.d1||'#', d2=r.d2||'#', d3=r.d3||'#';
+      tree[g] = tree[g] || {};
+      tree[g][d1] = tree[g][d1] || {};
+      tree[g][d1][d2] = tree[g][d1][d2] || {};
+      tree[g][d1][d2][d3] = true;
+      if(!minD || r.date < minD) minD = r.date;
+      if(!maxD || r.date > maxD) maxD = r.date;
+    }
+  }
+  MENU_TREE = tree;
+  DATA_MIN_DATE = minD;
+  DATA_MAX_DATE = maxD;
+  renderMenuTree();
+}
+function renderMenuTree() {
+  const box = document.getElementById('mtree');
+  if(!MENU_TREE || !Object.keys(MENU_TREE).length) { box.innerHTML = '<div style="color:var(--t3);font-size:12px;padding:10px 0">업로드된 데이터가 없습니다</div>'; return; }
+  let html = '';
+  const gnbKeys = Object.keys(MENU_TREE).sort();
+  gnbKeys.forEach((g, gi) => {
+    const gid = `mt-g${gi}`;
+    html += mtRow(g, 1, gid, true, isChecked(g));
+    html += `<div class="mt-children" id="${gid}-c">`;
+    const d1Keys = Object.keys(MENU_TREE[g]).sort();
+    d1Keys.forEach((d1, d1i) => {
+      const hasD1 = d1 !== '#';
+      if(!hasD1) return;
+      const id1 = `${gid}-d${d1i}`;
+      html += mtRow(d1, 2, id1, true, isChecked(g,d1), g);
+      html += `<div class="mt-children" id="${id1}-c">`;
+      const d2Keys = Object.keys(MENU_TREE[g][d1]).sort();
+      d2Keys.forEach((d2, d2i) => {
+        if(d2 === '#') return;
+        const id2 = `${id1}-e${d2i}`;
+        html += mtRow(d2, 3, id2, false, isChecked(g,d1,d2), g, d1);
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  box.innerHTML = html;
+}
+function mtRow(label, lvl, id, expandable, checked, g, d1) {
+  const path = [g,d1,label].filter(Boolean);
+  const arrow = expandable ? `<span class="mt-arrow" onclick="mtToggle('${id}')">▶</span>` : `<span class="mt-arrow"></span>`;
+  return `<div class="mt-row mt-lv${lvl}">
+    ${arrow}
+    <input type="checkbox" id="${id}-cb" ${checked?'checked':''} onchange="mtCheck('${id}', ${JSON.stringify(path).replace(/"/g,'&quot;')})">
+    <span class="mt-lbl" title="${label}" onclick="document.getElementById('${id}-cb').click()">${label}</span>
+  </div>`;
+}
+function mtToggle(id) {
+  const c = document.getElementById(id+'-c');
+  const arrow = document.querySelector(`[onclick="mtToggle('${id}')"]`);
+  if(!c) return;
+  c.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+function isChecked(g,d1,d2) {
+  if(!SELECTED_MENU.size) return true; // 전체 선택 상태
+  const key = [g,d1,d2].filter(Boolean).join('›');
+  return [...SELECTED_MENU].some(sel => key.startsWith(sel) || sel.startsWith(key));
+}
+function mtCheck(id, path) {
+  const key = path.join('›');
+  const cb = document.getElementById(id+'-cb');
+  if(cb.checked) SELECTED_MENU.add(key); else SELECTED_MENU.delete(key);
+}
+function mtSelectAll() { SELECTED_MENU.clear(); renderMenuTree(); }
+
+/* ═══════════════════════════════════════
+   PERIOD PRESETS
+═══════════════════════════════════════ */
+const PRESETS = [
+  {key:'recent7d', label:'최근 7일', days:7},
+  {key:'recent4w', label:'최근 4주', days:28},
+  {key:'recent12w', label:'최근 12주', days:84},
+  {key:'all', label:'전체'}
+];
+function buildPresets() {
+  const box = document.getElementById('presetRow');
+  box.innerHTML = PRESETS.map(p=>`<button class="preset" id="pr-${p.key}" onclick="setPreset('${p.key}')">${p.label}</button>`).join('');
+}
+function setPreset(key) {
+  document.querySelectorAll('.preset').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pr-'+key)?.classList.add('on');
+  const latest = latestDataDate();
+  if(!latest) return;
+  const p = PRESETS.find(p=>p.key===key);
+  let start;
+  if(key === 'all') start = earliestDataDate() || addDays(latest, -84);
+  else start = addDays(latest, -(p.days-1));
+  document.getElementById('dtStart').value = fmtISO(start);
+  document.getElementById('dtEnd').value = fmtISO(latest);
+}
+function latestDataDate() {
+  return DATA_MAX_DATE ? new Date(DATA_MAX_DATE) : null;
+}
+function earliestDataDate() {
+  return DATA_MIN_DATE ? new Date(DATA_MIN_DATE) : null;
+}
+function toggleCompare() {
+  CMP.on = !CMP.on;
+  document.getElementById('cmpSwitch').classList.toggle('on', CMP.on);
+  document.getElementById('cmpDateWrap').style.display = CMP.on ? '' : 'none';
+}
+
+/* ═══════════════════════════════════════
+   APPLY FILTERS → LOAD DATA → RENDER
+═══════════════════════════════════════ */
+async function applyFilters() {
+  RANGE.start = document.getElementById('dtStart').value;
+  RANGE.end = document.getElementById('dtEnd').value;
+  if(!RANGE.start || !RANGE.end) return;
+  document.getElementById('rangeTtl').textContent = `편성 실적 요약`;
+  document.getElementById('rangeSub').textContent = `${RANGE.start} ~ ${RANGE.end}` + (CMP.on ? ` · 비교: ${document.getElementById('dtStart2').value||'-'} ~ ${document.getElementById('dtEnd2').value||'-'}` : '');
+
+  const menuRows = await loadMenuRows(RANGE.start, RANGE.end);
+  const filtered = filterByMenu(menuRows);
+  let cmpFiltered = null;
+  if(CMP.on) {
+    CMP.start = document.getElementById('dtStart2').value;
+    CMP.end = document.getElementById('dtEnd2').value;
+    if(CMP.start && CMP.end) {
+      const cmpRows = await loadMenuRows(CMP.start, CMP.end);
+      cmpFiltered = filterByMenu(cmpRows);
+    }
+  }
+
+  renderKPI(filtered, cmpFiltered);
+  renderFunnel(filtered);
+  buildTrendTabs();
+  renderTrend();
+  buildGnbTrendTabs();
+  renderGnbTrend();
+  renderGnbChart(filtered);
+  populateBlockGnbSel();
+  renderBlockTable();
+  await renderRankSection();
+  await loadTitleCompareData();
+  renderTitlePickChips();
+  renderTitleGnbTable();
+}
+
+function weeksInRange(start, end) {
+  const s = new Date(start), e = new Date(end);
+  return ALL_WEEKS.filter(wl => true); // week 필터는 로딩 후 date 단위로 다시 거르므로 전체 후보만 추림 (아래 최적화)
+}
+async function loadMenuRows(start, end) {
+  const s = new Date(start), e = new Date(end);
+  const relevantWeeks = ALL_WEEKS.filter(wl => weekOverlaps(wl, s, e));
+  let rows = [];
+  for(const wl of relevantWeeks) {
+    const rec = await idbGet('weeksMenu', wl);
+    if(!rec) continue;
+    rows = rows.concat(rec.rows.filter(r => r.date >= start && r.date <= end));
+  }
+  return rows;
+}
+async function loadContentRows(start, end) {
+  const s = new Date(start), e = new Date(end);
+  const relevantWeeks = ALL_WEEKS.filter(wl => weekOverlaps(wl, s, e));
+  let rows = [];
+  for(const wl of relevantWeeks) {
+    const rec = await idbGet('weeksContent', wl);
+    if(!rec) continue;
+    rows = rows.concat(rec.rows.filter(r => r.date >= start && r.date <= end));
+  }
+  return rows;
+}
+function weekOverlaps(wl, s, e) {
+  const m = wl.match(/^(\d{4})-(\d{2})-W(\d+)$/);
+  if(!m) return true;
+  // 대략치 필터(주차 라벨→달) — 실제 정확 필터는 date 문자열 비교로 이미 재확인함. 넉넉하게 모든 주차 포함해도 date 필터가 정확히 걸러줌.
+  return true;
+}
+function filterByMenu(rows) {
+  if(!SELECTED_MENU.size) return rows;
+  return rows.filter(r => {
+    const key = [r.gnb, r.d1!=='#'?r.d1:null, r.d2!=='#'?r.d2:null].filter(Boolean).join('›');
+    return [...SELECTED_MENU].some(sel => key.startsWith(sel) || sel.startsWith(key));
+  });
+}
+
+/* ═══════════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════════ */
+const KPI_DEFS = [
+  {code:null,    label:'전체', ic:'∑', color:'#1d1d1f'},
+  {code:'CTSEL', label:'클릭', ic:'👆', color:'#0071e3'},
+  {code:'SNSSIN',label:'시놉진입', ic:'📄', color:'#ff9f0a'},
+  {code:'CTPL',  label:'재생(VOD시청)', ic:'▶', color:'#af52de'},
+  {code:'BUY',   label:'구매', ic:'💳', color:'#1fab5a'}
+];
+function sumByCode(rows, code, field) {
+  field = field || METRIC;
+  const target = code ? rows.filter(r=>r.logcode===code) : rows;
+  return target.reduce((a,r)=>a+(r[field]||0),0);
+}
+function renderKPI(rows, cmpRows) {
+  const box = document.getElementById('kpiRow');
+  box.innerHTML = KPI_DEFS.map(k => {
+    const v = sumByCode(rows, k.code);
+    let wowHtml = '';
+    if(cmpRows) {
+      const cv = sumByCode(cmpRows, k.code);
+      const diff = cv ? ((v-cv)/cv*100) : null;
+      if(diff !== null) {
+        const cls = diff>0?'up':diff<0?'dn':'fl';
+        const arrow = diff>0?'▲':diff<0?'▼':'-';
+        wowHtml = `<div class="kw ${cls}">${arrow} ${Math.abs(diff).toFixed(1)}% <span style="color:var(--t3);font-weight:400">vs 비교기간</span></div>`;
+      }
+    }
+    return `<div class="kc">
+      <div class="kc-top"><div class="kc-ic" style="background:${k.color}1a;color:${k.color}">${k.ic}</div><div class="kl">${k.label} ${METRIC.toUpperCase()}</div></div>
+      <div class="kv">${v.toLocaleString()}</div>
+      ${wowHtml}
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════
+   FUNNEL
+═══════════════════════════════════════ */
+function renderFunnel(rows) {
+  const box = document.getElementById('funnelBox');
+  let prev = null;
+  box.innerHTML = FUNNEL_STEPS.map(s => {
+    const v = sumByCode(rows, s.code);
+    let rate = '';
+    if(prev !== null && s.rateLabel) {
+      const pct = prev ? (v/prev*100) : 0;
+      rate = `<div class="fn-rate">${s.rateLabel} ${pct.toFixed(1)}%</div>`;
+    }
+    prev = v;
+    return `<div class="fn-step"><div class="fn-box"><div class="fn-lbl">${s.label}</div><div class="fn-val">${v.toLocaleString()}</div>${rate}</div></div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════
+   TREND CHART
+═══════════════════════════════════════ */
+function periodKey(dateStr, unit) {
+  if(unit === 'day') return dateStr;
+  if(unit === 'month') return monthKey(dateStr);
+  return getWL(new Date(dateStr));
+}
+function buildTrendTabs() {
+  const mBox = document.getElementById('trendMetricTb');
+  mBox.innerHTML = FUNNEL_STEPS.map(s=>`<button class="tb ${TREND_METRIC===s.code?'on':''}" onclick="setTrendMetric('${s.code}')">${s.label}</button>`).join('');
+  const uBox = document.getElementById('trendUnitTb');
+  uBox.innerHTML = ['day','week','month'].map(u=>`<button class="tb ${TREND_UNIT===u?'on':''}" onclick="setTrendUnit('${u}')">${u==='day'?'일별':u==='week'?'주별':'월별'}</button>`).join('');
+}
+function setTrendMetric(code){ TREND_METRIC = code; buildTrendTabs(); renderTrend(); }
+function setTrendUnit(u){ TREND_UNIT = u; buildTrendTabs(); renderTrend(); }
+
+let trendChartInst = null;
+async function renderTrend() {
+  const rows = filterByMenu(await loadMenuRows(RANGE.start, RANGE.end));
+  const target = rows.filter(r=>r.logcode===TREND_METRIC);
+  const byKey = new Map();
+  for(const r of target) {
+    const key = periodKey(r.date, TREND_UNIT);
+    byKey.set(key, (byKey.get(key)||0) + (r[METRIC]||0));
+  }
+  const labels = [...byKey.keys()].sort();
+  const data = labels.map(l=>byKey.get(l));
+
+  const ctx = document.getElementById('cTrend');
+  if(trendChartInst) trendChartInst.destroy();
+  trendChartInst = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[{ label: `${FUNNEL_STEPS.find(s=>s.code===TREND_METRIC).label} ${METRIC.toUpperCase()}`, data, borderColor:'#0071e3', backgroundColor:'rgba(0,113,227,.08)', fill:true, tension:.3, pointRadius:2 }] },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{display:false}, tooltip:{padding:10,cornerRadius:8} },
+      scales:{ x:{grid:{display:false},ticks:{font:{size:10},color:'#8a8a8e',maxRotation:0,autoSkip:true}}, y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:10},color:'#8a8a8e'}} }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════
+   GNB별 흐름 (멀티라인 추이)
+═══════════════════════════════════════ */
+function buildGnbTrendTabs() {
+  const mBox = document.getElementById('gnbTrendMetricTb');
+  mBox.innerHTML = FUNNEL_STEPS.map(s=>`<button class="tb ${GNB_TREND_METRIC===s.code?'on':''}" onclick="setGnbTrendMetric('${s.code}')">${s.label}</button>`).join('');
+  const uBox = document.getElementById('gnbTrendUnitTb');
+  uBox.innerHTML = ['day','week','month'].map(u=>`<button class="tb ${GNB_TREND_UNIT===u?'on':''}" onclick="setGnbTrendUnit('${u}')">${u==='day'?'일별':u==='week'?'주별':'월별'}</button>`).join('');
+}
+function setGnbTrendMetric(code){ GNB_TREND_METRIC = code; buildGnbTrendTabs(); renderGnbTrend(); }
+function setGnbTrendUnit(u){ GNB_TREND_UNIT = u; buildGnbTrendTabs(); renderGnbTrend(); }
+
+const GNB_TREND_COLORS = ['#0071e3','#1fab5a','#ff9f0a','#af52de','#e5484d','#3B5BDB','#059669','#c2410c'];
+let gnbTrendChartInst = null;
+async function renderGnbTrend() {
+  document.getElementById('gnbTrendSub').textContent = `GNB별 ${FUNNEL_STEPS.find(s=>s.code===GNB_TREND_METRIC).label} ${METRIC.toUpperCase()} 추이 (상위 8개 GNB)`;
+  const rows = filterByMenu(await loadMenuRows(RANGE.start, RANGE.end)).filter(r=>r.logcode===GNB_TREND_METRIC);
+  const totalByGnb = new Map();
+  for(const r of rows) totalByGnb.set(r.gnb, (totalByGnb.get(r.gnb)||0)+(r[METRIC]||0));
+  const topGnbs = [...totalByGnb.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(e=>e[0]);
+
+  const byPeriodGnb = new Map(); // period -> {gnb: val}
+  for(const r of rows) {
+    if(!topGnbs.includes(r.gnb)) continue;
+    const key = periodKey(r.date, GNB_TREND_UNIT);
+    if(!byPeriodGnb.has(key)) byPeriodGnb.set(key, {});
+    const o = byPeriodGnb.get(key);
+    o[r.gnb] = (o[r.gnb]||0) + (r[METRIC]||0);
+  }
+  const labels = [...byPeriodGnb.keys()].sort();
+  const datasets = topGnbs.map((g,i) => ({
+    label: g, data: labels.map(l => (byPeriodGnb.get(l)||{})[g] || 0),
+    borderColor: GNB_TREND_COLORS[i%GNB_TREND_COLORS.length], backgroundColor:'transparent', tension:.3, pointRadius:1.5, borderWidth:2
+  }));
+
+  const ctx = document.getElementById('cGnbTrend');
+  if(gnbTrendChartInst) gnbTrendChartInst.destroy();
+  gnbTrendChartInst = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{display:false}, tooltip:{padding:10,cornerRadius:8,mode:'index',intersect:false} },
+      interaction:{mode:'index',intersect:false},
+      scales:{ x:{grid:{display:false},ticks:{font:{size:10},color:'#8a8a8e',maxRotation:0,autoSkip:true}}, y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:10},color:'#8a8a8e'}} }
+    }
+  });
+  document.getElementById('gnbTrendLegend').innerHTML = topGnbs.map((g,i)=>`<div class="li"><span class="ld" style="background:${GNB_TREND_COLORS[i%GNB_TREND_COLORS.length]}"></span>${escHtml(g)}</div>`).join('');
+}
+
+/* ═══════════════════════════════════════
+   GNB 내 편성 블록 실적
+═══════════════════════════════════════ */
+function populateBlockGnbSel() {
+  const sel = document.getElementById('blockGnbSel');
+  if(!sel || !MENU_TREE) return;
+  const prev = sel.value;
+  const gnbs = Object.keys(MENU_TREE).sort();
+  sel.innerHTML = gnbs.map(g=>`<option value="${escHtml(g)}">${escHtml(g)}</option>`).join('');
+  if(gnbs.includes(prev)) sel.value = prev;
+}
+async function renderBlockTable() {
+  const sel = document.getElementById('blockGnbSel');
+  const gnb = sel?.value;
+  const box = document.getElementById('blockTable');
+  if(!gnb) { box.innerHTML = ''; return; }
+  const rows = (await loadMenuRows(RANGE.start, RANGE.end)).filter(r=>r.gnb===gnb);
+  const byBlock = new Map();
+  for(const r of rows) {
+    const key = [r.d1,r.d2,r.d3].filter(v=>v && v!=='#').join(' › ') || '(전체)';
+    let e = byBlock.get(key);
+    if(!e) { e = {block:key, CTSEL:0, SNSSIN:0, CTPL:0, BUY:0, rev:0}; byBlock.set(key,e); }
+    if(r.logcode in e) e[r.logcode] += (r[METRIC]||0);
+    if(r.logcode==='BUY') e.rev += r.rev;
+  }
+  const rowsArr = [...byBlock.values()].sort((a,b)=>b.CTSEL-a.CTSEL).slice(0,100);
+  let html = `<thead><tr><th>편성 블록</th><th>클릭</th><th>시놉진입율</th><th>재생전환율</th><th>구매전환율</th><th>매출</th></tr></thead><tbody>`;
+  rowsArr.forEach((r,i) => {
+    const snRate = r.CTSEL? (r.SNSSIN/r.CTSEL*100).toFixed(1)+'%' : '-';
+    const plRate = r.SNSSIN? (r.CTPL/r.SNSSIN*100).toFixed(1)+'%' : '-';
+    const buyRate = r.CTPL? (r.BUY/r.CTPL*100).toFixed(1)+'%' : '-';
+    html += `<tr><td><span class="rank-badge ${i<3?'top':''}">${i+1}</span>${escHtml(r.block)}</td><td>${r.CTSEL.toLocaleString()}</td><td>${snRate}</td><td>${plRate}</td><td>${buyRate}</td><td>${r.rev.toLocaleString()}</td></tr>`;
+  });
+  html += '</tbody>';
+  box.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════
+   GNB COMPARISON CHART
+═══════════════════════════════════════ */
+let gnbChartInst = null;
+function renderGnbChart(rows) {
+  const clicks = rows.filter(r=>r.logcode==='CTSEL');
+  const byGnb = new Map();
+  for(const r of clicks) byGnb.set(r.gnb, (byGnb.get(r.gnb)||0)+(r[METRIC]||0));
+  const sorted = [...byGnb.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const ctx = document.getElementById('cGnb');
+  if(gnbChartInst) gnbChartInst.destroy();
+  gnbChartInst = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: sorted.map(s=>s[0]), datasets:[{ label:`클릭 ${METRIC.toUpperCase()}`, data: sorted.map(s=>s[1]), backgroundColor:'#0071e3', borderRadius:6, maxBarThickness:28 }] },
+    options:{
+      responsive:true, maintainAspectRatio:true, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{padding:10,cornerRadius:8} },
+      scales:{ x:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:10},color:'#8a8a8e'}}, y:{grid:{display:false},ticks:{font:{size:11},color:'#1d1d1f'}} }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════
+   CONTENT RANKING TABLE (콘텐츠 단위 — 주차별 상세 보관본에서 조회)
+═══════════════════════════════════════ */
+let RANK_ROWS = [];
+let RANK_SORT = {col:'uv_CTSEL', dir:'desc'};
+async function renderRankSection() {
+  const raw = filterByMenu(await loadContentRows(RANGE.start, RANGE.end));
+  const byContent = new Map();
+  for(const r of raw) {
+    if(!r.cid) continue;
+    const key = r.cid;
+    let e = byContent.get(key);
+    if(!e) { e = {cid:r.cid, cname:r.cname, gnb:r.gnb, uv_MNIN:0,uv_CTSEL:0,uv_SNSSIN:0,uv_CTPL:0,uv_BUY:0, rev:0}; byContent.set(key,e); }
+    const field = 'uv_'+r.logcode;
+    if(field in e) e[field] += (r[METRIC]||0);
+    if(r.logcode==='BUY') e.rev += r.rev;
+    if(r.cname && !e.cname) e.cname = r.cname;
+  }
+  RANK_ROWS = [...byContent.values()];
+  document.getElementById('rankSub').textContent = `선택 기간·메뉴 내 콘텐츠별 실적 (총 ${RANK_ROWS.length.toLocaleString()}개)`;
+  renderRankTable();
+}
+function renderRankTable() {
+  const search = (document.getElementById('rankSearch').value||'').trim().toLowerCase();
+  let rows = RANK_ROWS;
+  if(search) rows = rows.filter(r => (r.cname||'').toLowerCase().includes(search) || (r.cid||'').toLowerCase().includes(search));
+  rows = [...rows].sort((a,b) => (b[RANK_SORT.col]-a[RANK_SORT.col]) * (RANK_SORT.dir==='desc'?1:-1));
+  const shown = rows.slice(0, RANK_LIMIT);
+
+  const cols = [
+    {k:'cname', l:'콘텐츠명', sort:false},
+    {k:'gnb', l:'GNB', sort:false},
+    {k:'uv_CTSEL', l:'클릭', sort:true},
+    {k:'snRate', l:'시놉진입율', sort:false},
+    {k:'plRate', l:'재생전환율', sort:false},
+    {k:'buyRate', l:'구매전환율', sort:false},
+    {k:'rev', l:'매출', sort:true}
+  ];
+  let html = '<thead><tr>' + cols.map(c=>{
+    const cls = c.sort ? `sort${RANK_SORT.col===c.k ? ' '+RANK_SORT.dir : ''}` : '';
+    return `<th class="${cls}" ${c.sort?`onclick="rankSort('${c.k}')"`:''}>${c.l}</th>`;
+  }).join('') + '</tr></thead><tbody>';
+  shown.forEach((r,i) => {
+    const snRate = r.uv_CTSEL ? (r.uv_SNSSIN/r.uv_CTSEL*100).toFixed(1)+'%' : '-';
+    const plRate = r.uv_SNSSIN ? (r.uv_CTPL/r.uv_SNSSIN*100).toFixed(1)+'%' : '-';
+    const buyRate = r.uv_CTPL ? (r.uv_BUY/r.uv_CTPL*100).toFixed(1)+'%' : '-';
+    html += `<tr>
+      <td><span class="rank-badge ${i<3?'top':''}">${i+1}</span>${escHtml(r.cname||r.cid||'-')}</td>
+      <td>${escHtml(r.gnb)}</td>
+      <td>${r.uv_CTSEL.toLocaleString()}</td>
+      <td>${snRate}</td>
+      <td>${plRate}</td>
+      <td>${buyRate}</td>
+      <td>${r.rev.toLocaleString()}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('rankTable').innerHTML = html;
+  const moreBox = document.getElementById('rankMore');
+  moreBox.innerHTML = rows.length > RANK_LIMIT ? `<button class="btn" onclick="RANK_LIMIT+=50;renderRankTable()">더보기 (${rows.length-RANK_LIMIT}개 남음)</button>` : '';
+}
+function rankSort(col) {
+  if(RANK_SORT.col===col) RANK_SORT.dir = RANK_SORT.dir==='desc'?'asc':'desc';
+  else RANK_SORT = {col, dir:'desc'};
+  renderRankTable();
+}
+function escHtml(s) { return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ═══════════════════════════════════════
+   타이틀별 GNB 매출 비교 (사이드바 메뉴 필터와 무관하게 선택 기간 전체 콘텐츠 데이터 사용)
+═══════════════════════════════════════ */
+let TITLE_ALL_ROWS = [];
+async function loadTitleCompareData() {
+  TITLE_ALL_ROWS = await loadContentRows(RANGE.start, RANGE.end);
+}
+function renderTitlePickSuggest() {
+  const box = document.getElementById('titlePickSuggest');
+  const q = (document.getElementById('titlePickInp').value||'').trim().toLowerCase();
+  if(!q) { box.style.display='none'; return; }
+  const seen = new Set();
+  const matches = [];
+  for(const r of TITLE_ALL_ROWS) {
+    if(!r.cid || !r.cname) continue;
+    if(seen.has(r.cid)) continue;
+    if(!r.cname.toLowerCase().includes(q)) continue;
+    seen.add(r.cid);
+    matches.push({cid:r.cid, cname:r.cname});
+    if(matches.length >= 20) break;
+  }
+  if(!matches.length) { box.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:var(--t3)">검색 결과 없음</div>'; box.style.display=''; return; }
+  box.innerHTML = matches.map(m=>`<div style="padding:8px 12px;font-size:12.5px;cursor:pointer" onmousedown="addTitlePick('${m.cid.replace(/'/g,"\\'")}')" onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">${escHtml(m.cname)}</div>`).join('');
+  box.style.display = '';
+}
+function addTitlePick(cid) {
+  const r = TITLE_ALL_ROWS.find(r=>r.cid===cid);
+  if(!r) return;
+  if(!TITLE_PICKS.some(t=>t.cid===cid)) TITLE_PICKS.push({cid, cname:r.cname});
+  document.getElementById('titlePickInp').value = '';
+  document.getElementById('titlePickSuggest').style.display = 'none';
+  renderTitlePickChips();
+  renderTitleGnbTable();
+}
+function removeTitlePick(cid) {
+  TITLE_PICKS = TITLE_PICKS.filter(t=>t.cid!==cid);
+  renderTitlePickChips();
+  renderTitleGnbTable();
+}
+function renderTitlePickChips() {
+  const box = document.getElementById('titlePickChips');
+  box.innerHTML = TITLE_PICKS.map(t=>`<span class="preset on" style="cursor:default">${escHtml(t.cname)} <span style="cursor:pointer" onclick="removeTitlePick('${t.cid.replace(/'/g,"\\'")}')">✕</span></span>`).join('') || '<span style="font-size:12px;color:var(--t3)">위 검색창에서 비교할 타이틀을 추가하세요</span>';
+}
+function renderTitleGnbTable() {
+  const box = document.getElementById('titleGnbTable');
+  if(!TITLE_PICKS.length) { box.innerHTML = ''; return; }
+  const gnbSet = new Set();
+  const revByTitleGnb = new Map(); // cid -> {gnb: rev}
+  for(const t of TITLE_PICKS) revByTitleGnb.set(t.cid, {});
+  for(const r of TITLE_ALL_ROWS) {
+    if(r.logcode !== 'BUY') continue;
+    if(!revByTitleGnb.has(r.cid)) continue;
+    gnbSet.add(r.gnb);
+    const o = revByTitleGnb.get(r.cid);
+    o[r.gnb] = (o[r.gnb]||0) + r.rev;
+  }
+  const gnbs = [...gnbSet].sort();
+  if(!gnbs.length) { box.innerHTML = '<div style="padding:16px;color:var(--t3);font-size:12.5px">선택한 타이틀의 구매(매출) 데이터가 없습니다.</div>'; return; }
+  let html = `<thead><tr><th>타이틀</th>${gnbs.map(g=>`<th>${escHtml(g)}</th>`).join('')}<th>합계</th></tr></thead><tbody>`;
+  TITLE_PICKS.forEach(t => {
+    const o = revByTitleGnb.get(t.cid) || {};
+    const vals = gnbs.map(g=>o[g]||0);
+    const max = Math.max(...vals, 0);
+    const total = vals.reduce((a,b)=>a+b,0);
+    html += `<tr><td>${escHtml(t.cname)}</td>${vals.map(v=>`<td style="${v>0 && v===max?'color:var(--blue);font-weight:700':''}">${v.toLocaleString()}</td>`).join('')}<td style="font-weight:700">${total.toLocaleString()}</td></tr>`;
+  });
+  html += '</tbody>';
+  box.innerHTML = html;
+}
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('titlePickInp');
+  const sugg = document.getElementById('titlePickSuggest');
+  if(wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) sugg.style.display='none';
+});
+
+function downloadRankExcel() {
+  const cols = ['콘텐츠명','GNB','클릭','시놉진입','재생','구매','매출'];
+  const lines = [cols.join(',')];
+  RANK_ROWS.forEach(r => {
+    lines.push([r.cname||r.cid,r.gnb,r.uv_CTSEL,r.uv_SNSSIN,r.uv_CTPL,r.uv_BUY,r.rev].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  });
+  const blob = new Blob(['﻿'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `편성실적_콘텐츠랭킹_${fmtISO(new Date())}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR STATS
+═══════════════════════════════════════ */
+async function updateSbStats() {
+  const box = document.getElementById('sbStats');
+  if(!ALL_WEEKS.length) { box.innerHTML = '누적된 데이터가 없습니다.'; return; }
+  box.innerHTML = `보유 주차: <strong>${ALL_WEEKS.length}주</strong><br>최초: ${ALL_WEEKS[0]}<br>최신: ${ALL_WEEKS[ALL_WEEKS.length-1]}`;
+}
+
+/* ═══════════════════════════════════════
+   SETTINGS (GitHub Enterprise 연동 — 스텁)
+═══════════════════════════════════════ */
+function openSettings(){ document.getElementById('ovSettings').classList.add('open'); }
+function closeSettings(){ document.getElementById('ovSettings').classList.remove('open'); }
+function loadSettingsFromStorage() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('schedPerfGitCfg')||'{}');
+    document.getElementById('cfgHost').value = cfg.host||'';
+    document.getElementById('cfgRepo').value = cfg.repo||'';
+    document.getElementById('cfgBranch').value = cfg.branch||'main';
+    document.getElementById('cfgToken').value = cfg.token||'';
+  } catch(e){}
+}
+function saveSettings() {
+  const cfg = {
+    host: document.getElementById('cfgHost').value.trim(),
+    repo: document.getElementById('cfgRepo').value.trim(),
+    branch: document.getElementById('cfgBranch').value.trim() || 'main',
+    token: document.getElementById('cfgToken').value.trim()
+  };
+  localStorage.setItem('schedPerfGitCfg', JSON.stringify(cfg));
+  closeSettings();
+  alert('저장 완료. Git 연동 API 호출 로직은 접속 정보 확정 후 활성화됩니다.');
+}
+async function exportBackup() {
+  const content = await idbGetAll('weeksContent');
+  const menu = await idbGetAll('weeksMenu');
+  const payload = { exportedAt: new Date().toISOString(), content, menu };
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `편성실적_백업_${fmtISO(new Date())}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
