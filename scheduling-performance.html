@@ -34,13 +34,6 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 .btn.pri:hover{background:#0064cc}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 
-.gnb-nav-wrap{border-top:1px solid var(--bd);overflow-x:auto;background:var(--sf)}
-.gnb-nav{max-width:1560px;margin:0 auto;display:flex;gap:2px;padding:0 24px}
-.gnb-tab{flex-shrink:0;padding:10px 14px;font-size:12.5px;font-weight:600;border:none;background:transparent;color:var(--t2);cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap}
-.gnb-tab:hover{color:var(--t1)}
-.gnb-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
-.gnb-tab.main{font-weight:700}
-
 .app-body{display:flex;max-width:1560px;margin:0 auto}
 .sidebar{width:264px;flex-shrink:0;padding:20px 16px 40px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
 .content-area{flex:1;min-width:0;padding:20px 24px 64px}
@@ -188,9 +181,6 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
       <button class="btn" onclick="openSettings()">⚙ 저장소 연동</button>
       <button class="btn pri" onclick="openUpload()">⬆ 엑셀 업로드</button>
     </div>
-  </div>
-  <div class="gnb-nav-wrap" id="gnbNavWrap" style="display:none">
-    <div class="gnb-nav" id="gnbNav"></div>
   </div>
 </header>
 
@@ -700,19 +690,6 @@ function renderMenuTree() {
   });
   box.innerHTML = html;
   renderDrillCrumb();
-  renderGnbNav();
-}
-function renderGnbNav() {
-  const wrap = document.getElementById('gnbNavWrap');
-  const box = document.getElementById('gnbNav');
-  if(!wrap || !box || !MENU_TREE) return;
-  const gnbs = sortGnbKeys(Object.keys(MENU_TREE));
-  if(!gnbs.length) { wrap.style.display='none'; return; }
-  wrap.style.display = '';
-  const curTopGnb = DRILL_KEY ? DRILL_KEY.split('›')[0] : null;
-  let html = `<button class="gnb-tab main ${!DRILL_KEY?'on':''}" onclick="resetDrill()">🏠 메인</button>`;
-  html += gnbs.map(g => `<button class="gnb-tab ${curTopGnb===g?'on':''}" onclick='drillInto(${JSON.stringify([g])})'>${escHtml(g)}</button>`).join('');
-  box.innerHTML = html;
 }
 function mtRow(label, lvl, id, expandable, checked, path) {
   const arrow = expandable ? `<span class="mt-arrow" onclick="mtToggle('${id}')">▶</span>` : `<span class="mt-arrow"></span>`;
