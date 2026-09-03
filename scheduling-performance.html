@@ -361,21 +361,17 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
 <!-- ════ 설정 모달 ════ -->
 <div class="ov" id="ovSettings">
   <div class="modal">
-    <div class="m-ttl">⚙ 사내 Git 저장소 연동 <span class="m-badge">준비중</span></div>
-    <div class="m-dsc">지금은 브라우저(IndexedDB)에만 데이터가 저장됩니다. 사내 Git 서버(GitHub Enterprise 등) 접속 정보를 입력하면 업로드 시 자동으로 커밋되도록 연결할 수 있습니다.</div>
-    <label class="m-lbl">Git 서버 주소 (Host)</label>
-    <input class="m-inp" id="cfgHost" placeholder="예: https://github.mycompany.com">
-    <label class="m-lbl">저장소 (owner/repo)</label>
-    <input class="m-inp" id="cfgRepo" placeholder="예: bq-team/scheduling-data">
-    <label class="m-lbl">브랜치</label>
-    <input class="m-inp" id="cfgBranch" placeholder="main" value="main">
-    <label class="m-lbl">Personal Access Token</label>
-    <input class="m-inp" id="cfgToken" type="password" placeholder="repo 쓰기 권한 토큰">
-    <div class="m-note">🔒 토큰은 이 브라우저에만 저장되며 외부로 전송되지 않습니다. 연동 기능은 접속 정보가 준비되면 활성화됩니다.</div>
+    <div class="m-ttl">⚙ 저장 폴더 연동 (OneDrive)</div>
+    <div class="m-dsc">사내 OneDrive 동기화 폴더 안의 한 폴더를 연결하면, 업로드할 때마다 주차별 데이터 파일이 그 폴더에 저장돼요. OneDrive가 알아서 팀원들 PC로 동기화해주기 때문에, 같은 폴더를 연결한 사람은 서로 업로드한 데이터를 함께 볼 수 있어요.</div>
+    <div id="folderStatusBox" class="m-note">연결된 폴더 없음 — 브라우저(이 PC)에만 데이터가 저장됩니다.</div>
+    <div class="m-btns" style="justify-content:flex-start;margin-top:12px">
+      <button class="btn pri" onclick="connectFolder()">📁 OneDrive 폴더 연결</button>
+      <button class="btn" id="btnDisconnectFolder" onclick="disconnectFolder()" style="display:none">연결 해제</button>
+    </div>
+    <div class="m-note">💡 최초 연결 시 브라우저가 폴더 접근 권한을 물어봅니다. Chrome 또는 Edge에서만 지원돼요. 폴더는 OneDrive 동기화 폴더 안의 빈 폴더(또는 이 대시보드 전용 폴더)를 선택해주세요.</div>
     <div class="m-btns">
-      <button class="btn" onclick="closeSettings()">취소</button>
+      <button class="btn" onclick="closeSettings()">닫기</button>
       <button class="btn" onclick="exportBackup()">⬇ 전체 백업 다운로드</button>
-      <button class="btn pri" onclick="saveSettings()">저장</button>
     </div>
   </div>
 </div>
@@ -538,6 +534,7 @@ async function upsertWeeks(weekData) {
     const newM = mergeRows(existingM ? existingM.rows : [], weekData[wl].menu, ['date','gnb','d1','d2','d3','logcode']);
     await idbPut('weeksContent', {week:wl, rows:newC, updatedAt: Date.now()});
     await idbPut('weeksMenu', {week:wl, rows:newM, updatedAt: Date.now()});
+    await writeWeekToFolder(wl, newC, newM);
   }
   await refreshMetaWeeks();
   return weekLabels;
@@ -602,7 +599,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   buildMetricTb();
   buildPeriodModeTabs();
   setPeriodMode('custom');
-  loadSettingsFromStorage();
+  await loadSettingsFromStorage();
   ALL_WEEKS = (await idbGet('meta','weeks'))?.weeks || [];
   if(ALL_WEEKS.length) {
     await buildMenuTree();
@@ -1371,30 +1368,132 @@ async function updateSbStats() {
 }
 
 /* ═══════════════════════════════════════
-   SETTINGS (GitHub Enterprise 연동 — 스텁)
+   SETTINGS — OneDrive 동기화 폴더 연동
+   (File System Access API, Chrome/Edge 전용)
 ═══════════════════════════════════════ */
-function openSettings(){ document.getElementById('ovSettings').classList.add('open'); }
+let FOLDER_HANDLE = null;
+function fsaSupported() { return typeof window.showDirectoryPicker === 'function'; }
+
+async function openSettings(){
+  document.getElementById('ovSettings').classList.add('open');
+  await updateFolderStatusUI();
+}
 function closeSettings(){ document.getElementById('ovSettings').classList.remove('open'); }
-function loadSettingsFromStorage() {
+
+async function loadSettingsFromStorage() {
+  if(!fsaSupported()) {
+    setFolderSyncBadge('unsupported');
+    return;
+  }
+  const rec = await idbGet('meta','folderHandle');
+  FOLDER_HANDLE = rec ? rec.handle : null;
+  if(!FOLDER_HANDLE) return;
+  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
+  if(perm === 'granted') {
+    await syncFromFolder();
+    setFolderSyncBadge('ok');
+  } else {
+    setFolderSyncBadge('needsAuth');
+  }
+}
+
+async function connectFolder() {
+  if(!fsaSupported()) { alert('이 브라우저는 폴더 연결을 지원하지 않습니다. Chrome 또는 Edge를 사용해주세요.'); return; }
   try {
-    const cfg = JSON.parse(localStorage.getItem('schedPerfGitCfg')||'{}');
-    document.getElementById('cfgHost').value = cfg.host||'';
-    document.getElementById('cfgRepo').value = cfg.repo||'';
-    document.getElementById('cfgBranch').value = cfg.branch||'main';
-    document.getElementById('cfgToken').value = cfg.token||'';
-  } catch(e){}
+    const handle = await window.showDirectoryPicker({mode:'readwrite'});
+    FOLDER_HANDLE = handle;
+    await idbPut('meta', {k:'folderHandle', handle});
+    await syncFromFolder();
+    setFolderSyncBadge('ok');
+    await updateFolderStatusUI();
+    await refreshAfterUpload();
+  } catch(e) { if(e.name !== 'AbortError') console.error(e); }
 }
-function saveSettings() {
-  const cfg = {
-    host: document.getElementById('cfgHost').value.trim(),
-    repo: document.getElementById('cfgRepo').value.trim(),
-    branch: document.getElementById('cfgBranch').value.trim() || 'main',
-    token: document.getElementById('cfgToken').value.trim()
-  };
-  localStorage.setItem('schedPerfGitCfg', JSON.stringify(cfg));
-  closeSettings();
-  alert('저장 완료. Git 연동 API 호출 로직은 접속 정보 확정 후 활성화됩니다.');
+async function reconnectFolderAuth() {
+  if(!FOLDER_HANDLE) return;
+  const perm = await FOLDER_HANDLE.requestPermission({mode:'readwrite'});
+  if(perm === 'granted') {
+    await syncFromFolder();
+    setFolderSyncBadge('ok');
+    await updateFolderStatusUI();
+    await refreshAfterUpload();
+  }
 }
+async function disconnectFolder() {
+  FOLDER_HANDLE = null;
+  await idbPut('meta', {k:'folderHandle', handle:null});
+  setFolderSyncBadge('none');
+  await updateFolderStatusUI();
+}
+async function updateFolderStatusUI() {
+  const box = document.getElementById('folderStatusBox');
+  const btnDis = document.getElementById('btnDisconnectFolder');
+  if(!box) return;
+  if(!fsaSupported()) {
+    box.textContent = '⚠ 이 브라우저는 폴더 연결을 지원하지 않습니다 (Chrome/Edge 사용 권장). 브라우저(이 PC)에만 데이터가 저장됩니다.';
+    if(btnDis) btnDis.style.display = 'none';
+    return;
+  }
+  if(!FOLDER_HANDLE) {
+    box.textContent = '연결된 폴더 없음 — 브라우저(이 PC)에만 데이터가 저장됩니다.';
+    if(btnDis) btnDis.style.display = 'none';
+    return;
+  }
+  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
+  if(perm === 'granted') {
+    box.textContent = `✅ 연결됨: "${FOLDER_HANDLE.name}" — 업로드할 때마다 이 폴더에 저장되고, OneDrive가 자동으로 동기화합니다.`;
+  } else {
+    box.innerHTML = `⚠ "${FOLDER_HANDLE.name}" 연결은 돼있지만 권한이 끊겼어요. <span class="lnk" onclick="reconnectFolderAuth()">클릭해서 재연결</span>`;
+  }
+  if(btnDis) btnDis.style.display = '';
+}
+function setFolderSyncBadge(state) {
+  const d = document.getElementById('sdot');
+  if(state==='needsAuth' && d && d.className.indexOf('err')<0) setSS('warn', '폴더 재연결 필요 · ⚙ 설정에서 클릭');
+}
+
+async function getSubDir(name, create) {
+  return FOLDER_HANDLE.getDirectoryHandle(name, {create: !!create});
+}
+async function syncFromFolder() {
+  if(!FOLDER_HANDLE) return;
+  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
+  if(perm !== 'granted') return;
+  for(const [subdir, store, keyFields] of [
+    ['content','weeksContent',['date','gnb','d1','d2','d3','cid','logcode']],
+    ['menu','weeksMenu',['date','gnb','d1','d2','d3','logcode']]
+  ]) {
+    let dirHandle;
+    try { dirHandle = await getSubDir(subdir, false); } catch(e) { continue; }
+    for await (const [fname, fh] of dirHandle.entries()) {
+      if(fh.kind !== 'file' || !fname.endsWith('.json')) continue;
+      const week = fname.replace(/\.json$/, '');
+      try {
+        const file = await fh.getFile();
+        const rows = JSON.parse(await file.text());
+        const existing = await idbGet(store, week);
+        const merged = mergeRows(existing ? existing.rows : [], rows, keyFields);
+        await idbPut(store, {week, rows: merged, updatedAt: Date.now()});
+      } catch(e) { console.error('폴더 동기화 실패', fname, e); }
+    }
+  }
+  await refreshMetaWeeks();
+}
+async function writeWeekToFolder(week, contentRows, menuRows) {
+  if(!FOLDER_HANDLE) return;
+  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
+  if(perm !== 'granted') return;
+  try {
+    const contentDir = await getSubDir('content', true);
+    const contentFh = await contentDir.getFileHandle(`${week}.json`, {create:true});
+    const w1 = await contentFh.createWritable(); await w1.write(JSON.stringify(contentRows)); await w1.close();
+
+    const menuDir = await getSubDir('menu', true);
+    const menuFh = await menuDir.getFileHandle(`${week}.json`, {create:true});
+    const w2 = await menuFh.createWritable(); await w2.write(JSON.stringify(menuRows)); await w2.close();
+  } catch(e) { console.error('폴더 저장 실패', week, e); }
+}
+
 async function exportBackup() {
   const content = await idbGetAll('weeksContent');
   const menu = await idbGetAll('weeksMenu');
