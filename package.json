@@ -1,0 +1,12 @@
+{
+  "name": "btv-scheduling-performance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BTV Scheduling Performance Dashboard",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}
