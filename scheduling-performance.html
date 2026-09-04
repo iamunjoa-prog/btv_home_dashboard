@@ -381,20 +381,6 @@ async function apiGet(pathAndQuery) {
   if(!r.ok) throw new Error(`API 오류 (${r.status}): ${pathAndQuery}`);
   return r.json();
 }
-async function apiPost(path, body) {
-  const json = JSON.stringify(body);
-  const headers = {'Content-Type': 'application/json'};
-  let reqBody = json;
-  if(typeof CompressionStream === 'function') {
-    const bytes = new TextEncoder().encode(json);
-    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
-    reqBody = await new Response(stream).blob();
-    headers['Content-Encoding'] = 'gzip';
-  }
-  const r = await fetch(path, { method: 'POST', headers, body: reqBody });
-  if(!r.ok) throw new Error(`API 오류 (${r.status}): ${path}`);
-  return r.json();
-}
 
 /* ═══════════════════════════════════════
    DATE / WEEK HELPERS
@@ -488,7 +474,20 @@ function aggregateRows(rows) {
 async function uploadRows(rows) {
   const agg = aggregateRows(rows);
   const weeks = [...new Set(agg.map(r=>getWL(new Date(r.date))))].sort();
-  await apiPost('/api/upload', {rows: agg});
+  // 대량 업로드(주간 파일이면 수십만~수백만 행) 시 서버 메모리 부담을 줄이기 위해
+  // 한 덩어리 JSON이 아니라 줄바꿈으로 구분된 NDJSON을 gzip으로 압축해 스트리밍 전송한다.
+  const ndjson = agg.map(r=>JSON.stringify(r)).join('\n');
+  const headers = {'Content-Type': 'application/x-ndjson'};
+  let body = ndjson;
+  if(typeof CompressionStream === 'function') {
+    const bytes = new TextEncoder().encode(ndjson);
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    body = await new Response(stream).blob();
+    headers['Content-Encoding'] = 'gzip';
+  }
+  const r = await fetch('/api/upload', {method:'POST', headers, body});
+  if(!r.ok) throw new Error(`API 오류 (${r.status}): /api/upload`);
+  await r.json();
   return weeks;
 }
 
