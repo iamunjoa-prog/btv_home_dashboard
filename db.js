@@ -1,5 +1,18 @@
 const { Pool } = require('pg');
 
+// 클라이언트(scheduling-performance.html)의 getWL()과 동일한 로직 — date -> "YYYY-MM-Wn" 주차 라벨
+function getWL(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const dow = d.getUTCDay(), diff = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(d); mon.setUTCDate(d.getUTCDate() + diff);
+  const thu = new Date(mon); thu.setUTCDate(mon.getUTCDate() + 3);
+  const y = thu.getUTCFullYear(), m = thu.getUTCMonth() + 1;
+  const f = new Date(Date.UTC(y, m - 1, 1)), fd = f.getUTCDay(), dt = (4 - fd + 7) % 7;
+  const ft = new Date(f); ft.setUTCDate(1 + dt);
+  const wn = Math.floor((thu - ft) / (7 * 864e5)) + 1;
+  return `${y}-${String(m).padStart(2, '0')}-W${wn}`;
+}
+
 const pool = new Pool({
   host: process.env.POSTGRES_HOST || 'localhost',
   port: +(process.env.POSTGRES_PORT || 5432),
@@ -34,4 +47,4 @@ async function initSchema() {
   `);
 }
 
-module.exports = { pool, initSchema };
+module.exports = { pool, initSchema, getWL };

@@ -182,7 +182,7 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
     <div class="logo"><div class="lg-ic">B</div>편성 실적 <span>Dashboard</span></div>
     <div class="hdr-r">
       <div class="sync"><div class="dot" id="sdot"></div><span id="slbl">데이터 없음</span></div>
-      <button class="btn" onclick="openSettings()">⚙ 저장소 연동</button>
+      <button class="btn" onclick="openSettings()">⚙ 설정</button>
       <button class="btn pri" onclick="openUpload()">⬆ 엑셀 업로드</button>
     </div>
   </div>
@@ -337,7 +337,7 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
   </main>
 </div>
 
-<footer>편성 실적 대시보드 · 로컬 브라우저(IndexedDB)에 누적 저장 · 사내 Git 저장소 연동은 설정에서 구성</footer>
+<footer>편성 실적 대시보드 · PostgreSQL DB에 누적 저장 · 팀원 누구나 같은 데이터를 봅니다</footer>
 
 <!-- ════ 업로드 모달 ════ -->
 <div class="ov" id="ovUpload">
@@ -361,16 +361,12 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
 <!-- ════ 설정 모달 ════ -->
 <div class="ov" id="ovSettings">
   <div class="modal">
-    <div class="m-ttl">⚙ 저장 폴더 연동 (OneDrive)</div>
-    <div class="m-dsc">사내 OneDrive 동기화 폴더 안의 한 폴더를 연결하면, 업로드할 때마다 주차별 데이터 파일이 그 폴더에 저장돼요. OneDrive가 알아서 팀원들 PC로 동기화해주기 때문에, 같은 폴더를 연결한 사람은 서로 업로드한 데이터를 함께 볼 수 있어요.</div>
-    <div id="folderStatusBox" class="m-note">연결된 폴더 없음 — 브라우저(이 PC)에만 데이터가 저장됩니다.</div>
-    <div class="m-btns" style="justify-content:flex-start;margin-top:12px">
-      <button class="btn pri" onclick="connectFolder()">📁 OneDrive 폴더 연결</button>
-      <button class="btn" id="btnDisconnectFolder" onclick="disconnectFolder()" style="display:none">연결 해제</button>
-    </div>
-    <div class="m-note">💡 최초 연결 시 브라우저가 폴더 접근 권한을 물어봅니다. Chrome 또는 Edge에서만 지원돼요. 폴더는 OneDrive 동기화 폴더 안의 빈 폴더(또는 이 대시보드 전용 폴더)를 선택해주세요.</div>
+    <div class="m-ttl">⚙ 설정</div>
+    <div class="m-dsc">이 대시보드는 서버(PostgreSQL)에 데이터를 저장해서, 누가 업로드하든 같은 URL을 여는 모든 사람에게 공유돼요.</div>
+    <div id="dbStatusBox" class="m-note">확인 중...</div>
     <div class="m-btns">
       <button class="btn" onclick="closeSettings()">닫기</button>
+      <button class="btn" onclick="checkDbStatus()">🔄 연결 상태 새로고침</button>
       <button class="btn" onclick="exportBackup()">⬇ 전체 백업 다운로드</button>
     </div>
   </div>
@@ -378,51 +374,26 @@ footer{text-align:center;padding:20px;font-size:12px;color:var(--t3);border-top:
 
 <script>
 /* ═══════════════════════════════════════
-   IndexedDB — weeksContent / weeksMenu / meta
+   API — 서버(PostgreSQL 연동) 호출 헬퍼
 ═══════════════════════════════════════ */
-const DB_NAME = 'schedPerfDB', DB_VER = 1;
-let dbp = null;
-function openDB() {
-  if(dbp) return dbp;
-  dbp = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if(!db.objectStoreNames.contains('weeksContent')) db.createObjectStore('weeksContent', {keyPath:'week'});
-      if(!db.objectStoreNames.contains('weeksMenu'))    db.createObjectStore('weeksMenu', {keyPath:'week'});
-      if(!db.objectStoreNames.contains('meta'))          db.createObjectStore('meta', {keyPath:'k'});
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-  return dbp;
+async function apiGet(pathAndQuery) {
+  const r = await fetch(pathAndQuery);
+  if(!r.ok) throw new Error(`API 오류 (${r.status}): ${pathAndQuery}`);
+  return r.json();
 }
-async function idbPut(store, val) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).put(val);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-async function idbGet(store, key) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function idbGetAll(store) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+async function apiPost(path, body) {
+  const json = JSON.stringify(body);
+  const headers = {'Content-Type': 'application/json'};
+  let reqBody = json;
+  if(typeof CompressionStream === 'function') {
+    const bytes = new TextEncoder().encode(json);
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    reqBody = await new Response(stream).blob();
+    headers['Content-Encoding'] = 'gzip';
+  }
+  const r = await fetch(path, { method: 'POST', headers, body: reqBody });
+  if(!r.ok) throw new Error(`API 오류 (${r.status}): ${path}`);
+  return r.json();
 }
 
 /* ═══════════════════════════════════════
@@ -501,54 +472,23 @@ async function parseExcelFile(file) {
 }
 
 /* ═══════════════════════════════════════
-   AGGREGATE → per-week content / menu rollups
+   업로드 — 같은 자연키(date+gnb+d1+d2+d3+cid+logcode) 행은 합산해서 서버로 전송
+   (서버가 upsert하므로 주차별 메뉴/콘텐츠 분리·병합은 더 이상 클라이언트가 할 필요 없음)
 ═══════════════════════════════════════ */
-function aggregateByWeek(rows) {
-  const weeks = {}; // week -> {content:Map, menu:Map}
-  for(const r of rows) {
-    const wl = getWL(new Date(r.date));
-    if(!weeks[wl]) weeks[wl] = {content:new Map(), menu:new Map()};
-    const w = weeks[wl];
-
-    const ck = [r.date,r.gnb,r.d1,r.d2,r.d3,r.cid,r.logcode].join('');
-    let ce = w.content.get(ck);
-    if(!ce) { ce = {date:r.date,gnb:r.gnb,d1:r.d1,d2:r.d2,d3:r.d3,cid:r.cid,cname:r.cname,logcode:r.logcode,uv:0,pv:0,rev:0}; w.content.set(ck,ce); }
-    ce.uv += r.uv; ce.pv += r.pv; ce.rev += r.rev;
-
-    const mk = [r.date,r.gnb,r.d1,r.d2,r.d3,r.logcode].join('');
-    let me = w.menu.get(mk);
-    if(!me) { me = {date:r.date,gnb:r.gnb,d1:r.d1,d2:r.d2,d3:r.d3,logcode:r.logcode,uv:0,pv:0,rev:0}; w.menu.set(mk,me); }
-    me.uv += r.uv; me.pv += r.pv; me.rev += r.rev;
-  }
-  const result = {};
-  for(const wl in weeks) result[wl] = { content: [...weeks[wl].content.values()], menu: [...weeks[wl].menu.values()] };
-  return result;
-}
-
-async function upsertWeeks(weekData) {
-  const weekLabels = Object.keys(weekData);
-  for(const wl of weekLabels) {
-    const existingC = await idbGet('weeksContent', wl);
-    const existingM = await idbGet('weeksMenu', wl);
-    const newC = mergeRows(existingC ? existingC.rows : [], weekData[wl].content, ['date','gnb','d1','d2','d3','cid','logcode']);
-    const newM = mergeRows(existingM ? existingM.rows : [], weekData[wl].menu, ['date','gnb','d1','d2','d3','logcode']);
-    await idbPut('weeksContent', {week:wl, rows:newC, updatedAt: Date.now()});
-    await idbPut('weeksMenu', {week:wl, rows:newM, updatedAt: Date.now()});
-    await writeWeekToFolder(wl, newC, newM);
-  }
-  await refreshMetaWeeks();
-  return weekLabels;
-}
-function mergeRows(oldRows, newRows, keyFields) {
+function aggregateRows(rows) {
   const map = new Map();
-  for(const r of oldRows) map.set(keyFields.map(f=>r[f]).join(''), r);
-  for(const r of newRows) map.set(keyFields.map(f=>r[f]).join(''), r); // 최신 업로드가 덮어씀
+  for(const r of rows) {
+    const key = [r.date,r.gnb,r.d1,r.d2,r.d3,r.cid,r.logcode].join('');
+    let e = map.get(key);
+    if(!e) { e = {date:r.date,gnb:r.gnb,d1:r.d1,d2:r.d2,d3:r.d3,cid:r.cid,cname:r.cname,logcode:r.logcode,uv:0,pv:0,rev:0}; map.set(key,e); }
+    e.uv += r.uv; e.pv += r.pv; e.rev += r.rev;
+  }
   return [...map.values()];
 }
-async function refreshMetaWeeks() {
-  const all = await idbGetAll('weeksMenu');
-  const weeks = all.map(w=>w.week).sort();
-  await idbPut('meta', {k:'weeks', weeks});
+async function uploadRows(rows) {
+  const agg = aggregateRows(rows);
+  const weeks = [...new Set(agg.map(r=>getWL(new Date(r.date))))].sort();
+  await apiPost('/api/upload', {rows: agg});
   return weeks;
 }
 
@@ -556,6 +496,12 @@ async function refreshMetaWeeks() {
    STATE
 ═══════════════════════════════════════ */
 let ALL_WEEKS = [];
+let WEEKS_INFO = []; // [{week,min_date,max_date,row_count}] — from /api/weeks
+async function refreshWeeksInfo() {
+  WEEKS_INFO = await apiGet('/api/weeks');
+  ALL_WEEKS = WEEKS_INFO.map(w=>w.week);
+  return ALL_WEEKS;
+}
 let MENU_TREE = null;      // {gnb:{d1:{d2:{d3:count}}}}
 let SELECTED_MENU = new Set(); // gnb keys selected (path strings) — empty set = 전체
 let DRILL_KEY = null; // 현재 드릴다운 중인 단일 메뉴 경로 (없으면 전체)
@@ -629,18 +575,22 @@ window.addEventListener('DOMContentLoaded', async () => {
   buildMetricTb();
   buildPeriodModeTabs();
   setPeriodMode('custom');
-  await loadSettingsFromStorage();
-  ALL_WEEKS = (await idbGet('meta','weeks'))?.weeks || [];
-  if(ALL_WEEKS.length) {
-    await buildMenuTree();
-    populatePeriodPickers();
-    setPreset('recent12w');
-    document.getElementById('emptyState').style.display='none';
-    document.getElementById('dashBody').style.display='';
-    setSS('ok', `누적 ${ALL_WEEKS.length}주차 보유`);
-    applyFilters();
-  } else {
-    setSS('warn','데이터 없음');
+  try {
+    await refreshWeeksInfo();
+    if(ALL_WEEKS.length) {
+      await buildMenuTree();
+      populatePeriodPickers();
+      setPreset('recent12w');
+      document.getElementById('emptyState').style.display='none';
+      document.getElementById('dashBody').style.display='';
+      setSS('ok', `누적 ${ALL_WEEKS.length}주차 보유`);
+      applyFilters();
+    } else {
+      setSS('warn','데이터 없음');
+    }
+  } catch(e) {
+    console.error(e);
+    setSS('err', 'DB 연결 실패');
   }
   updateSbStats();
 });
@@ -674,8 +624,7 @@ async function handleFileInput(files) {
     try {
       const rows = await parseExcelFile(file);
       if(!rows.length) throw new Error('유효한 데이터 행을 찾지 못했습니다');
-      const weekData = aggregateByWeek(rows);
-      const weekLabels = await upsertWeeks(weekData);
+      const weekLabels = await uploadRows(rows);
       statusEl.className = 'ul-status ok';
       statusEl.textContent = `${weekLabels.join(', ')} 반영 완료 (${rows.length.toLocaleString()}행)`;
     } catch(e) {
@@ -686,7 +635,7 @@ async function handleFileInput(files) {
   }
 }
 async function refreshAfterUpload() {
-  ALL_WEEKS = (await idbGet('meta','weeks'))?.weeks || [];
+  await refreshWeeksInfo();
   if(!ALL_WEEKS.length) return;
   await buildMenuTree();
   populatePeriodPickers();
@@ -703,20 +652,17 @@ async function refreshAfterUpload() {
 ═══════════════════════════════════════ */
 let DATA_MIN_DATE = null, DATA_MAX_DATE = null;
 async function buildMenuTree() {
-  const all = await idbGetAll('weeksMenu');
+  const combos = await apiGet('/api/menu-tree'); // [{gnb,d1,d2}]
   const tree = {};
-  let minD = null, maxD = null;
-  for(const w of all) {
-    for(const r of w.rows) {
-      let node = tree;
-      for(const seg of effPath(r)) { node[seg] = node[seg] || {}; node = node[seg]; }
-      if(!minD || r.date < minD) minD = r.date;
-      if(!maxD || r.date > maxD) maxD = r.date;
-    }
+  for(const r of combos) {
+    let node = tree;
+    for(const seg of effPath(r)) { node[seg] = node[seg] || {}; node = node[seg]; }
   }
   MENU_TREE = tree;
-  DATA_MIN_DATE = minD;
-  DATA_MAX_DATE = maxD;
+  if(WEEKS_INFO.length) {
+    DATA_MIN_DATE = WEEKS_INFO.reduce((m,w)=>!m||w.min_date<m?w.min_date:m, null);
+    DATA_MAX_DATE = WEEKS_INFO.reduce((m,w)=>!m||w.max_date>m?w.max_date:m, null);
+  }
   renderMenuTree();
 }
 /* 트리를 재귀적으로 렌더링 — 홈은 섹션을 고정 순서로, 그 외는 gnb 정렬/알파벳순 */
@@ -859,11 +805,10 @@ async function onDayPick() {
 async function onWeekPick() {
   const wl = document.getElementById('weekSel').value;
   if(!wl) return;
-  const rec = await idbGet('weeksMenu', wl);
-  if(!rec || !rec.rows.length) return;
-  const dates = rec.rows.map(r=>r.date).sort();
-  document.getElementById('dtStart').value = dates[0];
-  document.getElementById('dtEnd').value = dates[dates.length-1];
+  const info = WEEKS_INFO.find(w=>w.week===wl);
+  if(!info) return;
+  document.getElementById('dtStart').value = info.min_date;
+  document.getElementById('dtEnd').value = info.max_date;
   applyFilters();
 }
 function onMonthPick() {
@@ -936,37 +881,11 @@ async function applyFilters() {
   renderTitleGnbTable();
 }
 
-function weeksInRange(start, end) {
-  const s = new Date(start), e = new Date(end);
-  return ALL_WEEKS.filter(wl => true); // week 필터는 로딩 후 date 단위로 다시 거르므로 전체 후보만 추림 (아래 최적화)
-}
 async function loadMenuRows(start, end) {
-  const s = new Date(start), e = new Date(end);
-  const relevantWeeks = ALL_WEEKS.filter(wl => weekOverlaps(wl, s, e));
-  let rows = [];
-  for(const wl of relevantWeeks) {
-    const rec = await idbGet('weeksMenu', wl);
-    if(!rec) continue;
-    rows = rows.concat(rec.rows.filter(r => r.date >= start && r.date <= end));
-  }
-  return rows;
+  return apiGet(`/api/rows/menu?start=${start}&end=${end}`);
 }
 async function loadContentRows(start, end) {
-  const s = new Date(start), e = new Date(end);
-  const relevantWeeks = ALL_WEEKS.filter(wl => weekOverlaps(wl, s, e));
-  let rows = [];
-  for(const wl of relevantWeeks) {
-    const rec = await idbGet('weeksContent', wl);
-    if(!rec) continue;
-    rows = rows.concat(rec.rows.filter(r => r.date >= start && r.date <= end));
-  }
-  return rows;
-}
-function weekOverlaps(wl, s, e) {
-  const m = wl.match(/^(\d{4})-(\d{2})-W(\d+)$/);
-  if(!m) return true;
-  // 대략치 필터(주차 라벨→달) — 실제 정확 필터는 date 문자열 비교로 이미 재확인함. 넉넉하게 모든 주차 포함해도 date 필터가 정확히 걸러줌.
-  return true;
+  return apiGet(`/api/rows/content?start=${start}&end=${end}`);
 }
 function filterByMenu(rows) {
   if(!SELECTED_MENU.size) return rows;
@@ -1399,137 +1318,30 @@ async function updateSbStats() {
 }
 
 /* ═══════════════════════════════════════
-   SETTINGS — OneDrive 동기화 폴더 연동
-   (File System Access API, Chrome/Edge 전용)
+   SETTINGS — DB 연결 상태 확인 · 백업 다운로드
 ═══════════════════════════════════════ */
-let FOLDER_HANDLE = null;
-function fsaSupported() { return typeof window.showDirectoryPicker === 'function'; }
-
 async function openSettings(){
   document.getElementById('ovSettings').classList.add('open');
-  await updateFolderStatusUI();
+  await checkDbStatus();
 }
 function closeSettings(){ document.getElementById('ovSettings').classList.remove('open'); }
 
-async function loadSettingsFromStorage() {
-  if(!fsaSupported()) {
-    setFolderSyncBadge('unsupported');
-    return;
-  }
-  const rec = await idbGet('meta','folderHandle');
-  FOLDER_HANDLE = rec ? rec.handle : null;
-  if(!FOLDER_HANDLE) return;
-  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
-  if(perm === 'granted') {
-    await syncFromFolder();
-    setFolderSyncBadge('ok');
-  } else {
-    setFolderSyncBadge('needsAuth');
-  }
-}
-
-async function connectFolder() {
-  if(!fsaSupported()) { alert('이 브라우저는 폴더 연결을 지원하지 않습니다. Chrome 또는 Edge를 사용해주세요.'); return; }
-  try {
-    const handle = await window.showDirectoryPicker({mode:'readwrite'});
-    FOLDER_HANDLE = handle;
-    await idbPut('meta', {k:'folderHandle', handle});
-    await syncFromFolder();
-    setFolderSyncBadge('ok');
-    await updateFolderStatusUI();
-    await refreshAfterUpload();
-  } catch(e) { if(e.name !== 'AbortError') console.error(e); }
-}
-async function reconnectFolderAuth() {
-  if(!FOLDER_HANDLE) return;
-  const perm = await FOLDER_HANDLE.requestPermission({mode:'readwrite'});
-  if(perm === 'granted') {
-    await syncFromFolder();
-    setFolderSyncBadge('ok');
-    await updateFolderStatusUI();
-    await refreshAfterUpload();
-  }
-}
-async function disconnectFolder() {
-  FOLDER_HANDLE = null;
-  await idbPut('meta', {k:'folderHandle', handle:null});
-  setFolderSyncBadge('none');
-  await updateFolderStatusUI();
-}
-async function updateFolderStatusUI() {
-  const box = document.getElementById('folderStatusBox');
-  const btnDis = document.getElementById('btnDisconnectFolder');
+async function checkDbStatus() {
+  const box = document.getElementById('dbStatusBox');
   if(!box) return;
-  if(!fsaSupported()) {
-    box.textContent = '⚠ 이 브라우저는 폴더 연결을 지원하지 않습니다 (Chrome/Edge 사용 권장). 브라우저(이 PC)에만 데이터가 저장됩니다.';
-    if(btnDis) btnDis.style.display = 'none';
-    return;
-  }
-  if(!FOLDER_HANDLE) {
-    box.textContent = '연결된 폴더 없음 — 브라우저(이 PC)에만 데이터가 저장됩니다.';
-    if(btnDis) btnDis.style.display = 'none';
-    return;
-  }
-  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
-  if(perm === 'granted') {
-    box.textContent = `✅ 연결됨: "${FOLDER_HANDLE.name}" — 업로드할 때마다 이 폴더에 저장되고, OneDrive가 자동으로 동기화합니다.`;
-  } else {
-    box.innerHTML = `⚠ "${FOLDER_HANDLE.name}" 연결은 돼있지만 권한이 끊겼어요. <span class="lnk" onclick="reconnectFolderAuth()">클릭해서 재연결</span>`;
-  }
-  if(btnDis) btnDis.style.display = '';
-}
-function setFolderSyncBadge(state) {
-  const d = document.getElementById('sdot');
-  if(state==='needsAuth' && d && d.className.indexOf('err')<0) setSS('warn', '폴더 재연결 필요 · ⚙ 설정에서 클릭');
-}
-
-async function getSubDir(name, create) {
-  return FOLDER_HANDLE.getDirectoryHandle(name, {create: !!create});
-}
-async function syncFromFolder() {
-  if(!FOLDER_HANDLE) return;
-  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
-  if(perm !== 'granted') return;
-  for(const [subdir, store, keyFields] of [
-    ['content','weeksContent',['date','gnb','d1','d2','d3','cid','logcode']],
-    ['menu','weeksMenu',['date','gnb','d1','d2','d3','logcode']]
-  ]) {
-    let dirHandle;
-    try { dirHandle = await getSubDir(subdir, false); } catch(e) { continue; }
-    for await (const [fname, fh] of dirHandle.entries()) {
-      if(fh.kind !== 'file' || !fname.endsWith('.json')) continue;
-      const week = fname.replace(/\.json$/, '');
-      try {
-        const file = await fh.getFile();
-        const rows = JSON.parse(await file.text());
-        const existing = await idbGet(store, week);
-        const merged = mergeRows(existing ? existing.rows : [], rows, keyFields);
-        await idbPut(store, {week, rows: merged, updatedAt: Date.now()});
-      } catch(e) { console.error('폴더 동기화 실패', fname, e); }
-    }
-  }
-  await refreshMetaWeeks();
-}
-async function writeWeekToFolder(week, contentRows, menuRows) {
-  if(!FOLDER_HANDLE) return;
-  const perm = await FOLDER_HANDLE.queryPermission({mode:'readwrite'});
-  if(perm !== 'granted') return;
+  box.textContent = '확인 중...';
   try {
-    const contentDir = await getSubDir('content', true);
-    const contentFh = await contentDir.getFileHandle(`${week}.json`, {create:true});
-    const w1 = await contentFh.createWritable(); await w1.write(JSON.stringify(contentRows)); await w1.close();
-
-    const menuDir = await getSubDir('menu', true);
-    const menuFh = await menuDir.getFileHandle(`${week}.json`, {create:true});
-    const w2 = await menuFh.createWritable(); await w2.write(JSON.stringify(menuRows)); await w2.close();
-  } catch(e) { console.error('폴더 저장 실패', week, e); }
+    const weeks = await apiGet('/api/weeks');
+    box.textContent = `✅ DB 연결 정상 — 누적 ${weeks.length}주차 데이터 보유`;
+  } catch(e) {
+    box.textContent = `⚠ DB 연결 실패: ${e.message}`;
+  }
 }
 
 async function exportBackup() {
-  const content = await idbGetAll('weeksContent');
-  const menu = await idbGetAll('weeksMenu');
-  const payload = { exportedAt: new Date().toISOString(), content, menu };
-  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  if(!DATA_MIN_DATE || !DATA_MAX_DATE) { alert('백업할 데이터가 없습니다.'); return; }
+  const rows = await apiGet(`/api/rows/content?start=${DATA_MIN_DATE}&end=${DATA_MAX_DATE}`);
+  const blob = new Blob([JSON.stringify({exportedAt:new Date().toISOString(), rows})], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `편성실적_백업_${fmtISO(new Date())}.json`;
