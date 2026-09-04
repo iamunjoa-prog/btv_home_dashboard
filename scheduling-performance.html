@@ -571,6 +571,36 @@ function sortGnbKeys(keys) {
     return ia-ib;
   });
 }
+/* ═══════════════════════════════════════
+   홈 GNB 전용 섹션 분류
+   (홈은 원본 1depth가 너무 잘게 쪼개져 있어서, 5개 섹션으로 재구성해서 보여줌)
+═══════════════════════════════════════ */
+const HOME_SECTIONS = ['Today B tv','오늘 핫한 콘텐츠','일반 콘텐츠 블록','RACE 블록','배너 블록'];
+const HOME_RACE_KW = ['(RACE)','AI 추천','AI 맞춤','For you','홈SEG','오늘의 인기','어제 가장','급상승','PPV/PPM','FOD 타겟'];
+const HOME_MY_KW = ['MY 블록','MY B tv','MY 메뉴 블록','MY 쿠폰'];
+function classifyHomeSection(d1) {
+  if(d1 === 'Today B tv') return 'Today B tv';
+  if(d1 === '오늘 핫한 콘텐츠') return '오늘 핫한 콘텐츠';
+  if(/^\[.*(배너|메뉴블록).*\]/.test(d1)) return '배너 블록';
+  if(HOME_RACE_KW.some(k=>d1.includes(k))) return 'RACE 블록';
+  return '일반 콘텐츠 블록';
+}
+function isHomeMY(d1) { return HOME_MY_KW.some(k=>d1.includes(k)); }
+
+/* 행의 트리 경로 — 홈은 [GNB, 섹션, 블록명], 그 외는 [GNB, 1depth, 2depth] */
+function effPath(r) {
+  if(r.gnb === '홈') {
+    if(!r.d1 || r.d1==='#') return [r.gnb];
+    return [r.gnb, classifyHomeSection(r.d1), r.d1];
+  }
+  const parts = [r.gnb];
+  if(!r.d1 || r.d1==='#') return parts;
+  parts.push(r.d1);
+  if(!r.d2 || r.d2==='#') return parts;
+  parts.push(r.d2);
+  return parts;
+}
+
 let RANGE = { start:null, end:null };
 let CMP = { on:false, start:null, end:null };
 let PERIOD_MODE = 'custom'; // 'day' | 'week' | 'month' | 'custom'
@@ -678,11 +708,8 @@ async function buildMenuTree() {
   let minD = null, maxD = null;
   for(const w of all) {
     for(const r of w.rows) {
-      const g = r.gnb||'(미분류)', d1=r.d1||'#', d2=r.d2||'#', d3=r.d3||'#';
-      tree[g] = tree[g] || {};
-      tree[g][d1] = tree[g][d1] || {};
-      tree[g][d1][d2] = tree[g][d1][d2] || {};
-      tree[g][d1][d2][d3] = true;
+      let node = tree;
+      for(const seg of effPath(r)) { node[seg] = node[seg] || {}; node = node[seg]; }
       if(!minD || r.date < minD) minD = r.date;
       if(!maxD || r.date > maxD) maxD = r.date;
     }
@@ -692,33 +719,30 @@ async function buildMenuTree() {
   DATA_MAX_DATE = maxD;
   renderMenuTree();
 }
+/* 트리를 재귀적으로 렌더링 — 홈은 섹션을 고정 순서로, 그 외는 gnb 정렬/알파벳순 */
 function renderMenuTree() {
   const box = document.getElementById('mtree');
   if(!MENU_TREE || !Object.keys(MENU_TREE).length) { box.innerHTML = '<div style="color:var(--t3);font-size:12px;padding:10px 0">업로드된 데이터가 없습니다</div>'; return; }
-  let html = '';
-  const gnbKeys = sortGnbKeys(Object.keys(MENU_TREE));
-  gnbKeys.forEach((g, gi) => {
-    const gid = `mt-g${gi}`;
-    html += mtRow(g, 1, gid, true, [g]);
-    html += `<div class="mt-children" id="${gid}-c">`;
-    const d1Keys = Object.keys(MENU_TREE[g]).sort();
-    d1Keys.forEach((d1, d1i) => {
-      const hasD1 = d1 !== '#';
-      if(!hasD1) return;
-      const id1 = `${gid}-d${d1i}`;
-      html += mtRow(d1, 2, id1, true, [g,d1]);
-      html += `<div class="mt-children" id="${id1}-c">`;
-      const d2Keys = Object.keys(MENU_TREE[g][d1]).sort();
-      d2Keys.forEach((d2, d2i) => {
-        if(d2 === '#') return;
-        const id2 = `${id1}-e${d2i}`;
-        html += mtRow(d2, 3, id2, false, [g,d1,d2]);
-      });
-      html += `</div>`;
+  let uid = 0;
+  function orderedKeys(node, path) {
+    if(path.length === 0) return sortGnbKeys(Object.keys(node));
+    if(path.length === 1 && path[0] === '홈') return HOME_SECTIONS.filter(s => s in node);
+    return Object.keys(node).sort();
+  }
+  function walk(node, path) {
+    let html = '';
+    orderedKeys(node, path).forEach(key => {
+      const childPath = [...path, key];
+      const lvl = childPath.length;
+      const id = `mt-${uid++}`;
+      const childNode = node[key];
+      const hasChildren = childNode && Object.keys(childNode).length > 0 && lvl < 3;
+      html += mtRow(key, lvl, id, hasChildren, childPath);
+      if(hasChildren) html += `<div class="mt-children" id="${id}-c">${walk(childNode, childPath)}</div>`;
     });
-    html += `</div>`;
-  });
-  box.innerHTML = html;
+    return html;
+  }
+  box.innerHTML = walk(MENU_TREE, []);
   renderDrillCrumb();
 }
 function mtRow(label, lvl, id, expandable, path) {
@@ -947,8 +971,8 @@ function weekOverlaps(wl, s, e) {
 function filterByMenu(rows) {
   if(!SELECTED_MENU.size) return rows;
   return rows.filter(r => {
-    const key = [r.gnb, r.d1!=='#'?r.d1:null, r.d2!=='#'?r.d2:null].filter(Boolean).join('›');
-    return [...SELECTED_MENU].some(sel => key.startsWith(sel) || sel.startsWith(key));
+    const key = effPath(r).join('›');
+    return [...SELECTED_MENU].some(sel => key === sel || key.startsWith(sel + '›'));
   });
 }
 
@@ -1106,41 +1130,48 @@ async function renderGnbTrend() {
    depth=2 (GNB>경로레벨1 선택): "…>경로레벨2" 표 1개
    depth=3 (경로레벨2까지 선택, 리프): 표 없음
 ═══════════════════════════════════════ */
-const LEVEL_LABELS = ['GNB','경로레벨1','경로레벨2'];
+const LEVEL_LABELS = ['GNB','1depth','2depth'];
 function renderBlockTable(scopedRows) {
   const section = document.getElementById('blockSection');
   const depth = DRILL_KEY ? DRILL_KEY.split('›').length : 0;
   if(!DRILL_KEY || depth >= 3) { section.style.display = 'none'; section.innerHTML=''; return; }
   section.style.display = '';
 
-  const fields = r => [r.gnb, (r.d1 && r.d1!=='#')?r.d1:null, (r.d2 && r.d2!=='#')?r.d2:null];
+  const drillParts = DRILL_KEY.split('›');
+  const isHome = drillParts[0] === '홈';
+  const levelName = L => isHome ? (L===2 ? '섹션' : '블록명') : LEVEL_LABELS[L-1];
+  const levelTitle = L => isHome
+    ? (L===2 ? '홈 > 섹션별 실적' : (drillParts[1] ? `홈 > ${drillParts[1]} > 블록별 실적` : '홈 > 전체 블록별 실적'))
+    : LEVEL_LABELS.slice(0, L).join(' > ') + ' 실적';
+
   let html = '';
   for(let L = depth+1; L <= 3; L++) {
-    const titleParts = LEVEL_LABELS.slice(0, L);
-    const title = titleParts.join(' > ') + ' 실적';
-
     const byBlock = new Map();
     for(const r of scopedRows) {
-      const f = fields(r).slice(0, L);
-      if(f.some(v => v===null)) continue; // 이 레벨까지 경로가 없는 행은 제외
-      const key = f.slice(depth).join(' › ');
+      const f = effPath(r);
+      if(f.length < L) continue; // 이 레벨까지 경로가 없는 행은 제외
+      const key = f.slice(depth, L).join(' › ');
       let e = byBlock.get(key);
-      if(!e) { e = {block:key, CTSEL:0, SNSSIN:0, CTPL:0, BUY:0, rev:0}; byBlock.set(key,e); }
+      if(!e) {
+        const myTag = isHome && L===3 && f[1]==='일반 콘텐츠 블록' && isHomeMY(f[2]);
+        e = {block:key, CTSEL:0, SNSSIN:0, CTPL:0, BUY:0, rev:0, myTag}; byBlock.set(key,e);
+      }
       if(r.logcode in e) e[r.logcode] += (r[METRIC]||0);
       if(r.logcode==='BUY') e.rev += r.rev;
     }
     const rowsArr = [...byBlock.values()].sort((a,b)=>b.CTSEL-a.CTSEL).slice(0,100);
 
-    html += `<div class="card"><div class="card-hdr"><div><div class="card-ttl">${title}</div></div></div><div class="tw"><table>`;
+    html += `<div class="card"><div class="card-hdr"><div><div class="card-ttl">${levelTitle(L)}</div></div></div><div class="tw"><table>`;
     if(!rowsArr.length) {
       html += `<tbody><tr><td style="padding:16px;color:var(--t3)">데이터가 없습니다.</td></tr></tbody>`;
     } else {
-      html += `<thead><tr><th>${LEVEL_LABELS[L-1]}</th><th>클릭</th><th>시놉진입율</th><th>재생전환율</th><th>구매전환율</th><th>매출</th></tr></thead><tbody>`;
+      html += `<thead><tr><th>${levelName(L)}</th><th>클릭</th><th>시놉진입율</th><th>재생전환율</th><th>구매전환율</th><th>매출</th></tr></thead><tbody>`;
       rowsArr.forEach((r,i) => {
         const snRate = r.CTSEL? (r.SNSSIN/r.CTSEL*100).toFixed(1)+'%' : '-';
         const plRate = r.SNSSIN? (r.CTPL/r.SNSSIN*100).toFixed(1)+'%' : '-';
         const buyRate = r.CTPL? (r.BUY/r.CTPL*100).toFixed(1)+'%' : '-';
-        html += `<tr><td><span class="rank-badge ${i<3?'top':''}">${i+1}</span>${escHtml(r.block)}</td><td>${r.CTSEL.toLocaleString()}</td><td>${snRate}</td><td>${plRate}</td><td>${buyRate}</td><td>${r.rev.toLocaleString()}</td></tr>`;
+        const myBadge = r.myTag ? `<span class="m-badge" style="margin-right:6px">MY</span>` : '';
+        html += `<tr><td><span class="rank-badge ${i<3?'top':''}">${i+1}</span>${myBadge}${escHtml(r.block)}</td><td>${r.CTSEL.toLocaleString()}</td><td>${snRate}</td><td>${plRate}</td><td>${buyRate}</td><td>${r.rev.toLocaleString()}</td></tr>`;
       });
       html += '</tbody>';
     }
